@@ -1,23 +1,32 @@
+# apiExport/tasks.py
+
 import logging
-from celery import shared_task
 import requests
-import csv
+import json
 import boto3
+import hashlib
 from datetime import datetime
-import urllib3
+from pathlib import Path
 from apiCommon.models import LatestFile
 from django.conf import settings
-from django.core.cache import cache
-from pathlib import Path
+from celery import shared_task
+from apiExport.utils import notify_update  # Importe a função para notificar via WebSocket
 
 logger = logging.getLogger('myapp')
 
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+def calculate_data_hash(data):
+    data_string = json.dumps(data, sort_keys=True)
+    return hashlib.md5(data_string.encode('utf-8')).hexdigest()
 
-def save_latest_file(file_type, file_key):
+def save_latest_file(file_type, file_key, last_month):
     try:
+        # Exclui registros duplicados, se existirem
+        LatestFile.objects.filter(file_type=file_type).exclude(id=LatestFile.objects.filter(file_type=file_type).first().id).delete()
+        
+        # Obtém ou cria o registro mais recente
         latest_file, created = LatestFile.objects.get_or_create(file_type=file_type)
-        latest_file.file_key = f"data/{file_key}"
+        latest_file.file_key = file_key
+        latest_file.last_month = last_month
         latest_file.save()
         logger.info(f"Registro salvo com sucesso: {latest_file.file_key}")
     except Exception as e:
@@ -26,74 +35,98 @@ def save_latest_file(file_type, file_key):
 @shared_task
 def fetch_and_update_export_data():
     logger.info("Iniciando a tarefa de atualização de dados de exportação")
-    
-    try:
-        cached_data = cache.get('export_data')
-        if cached_data:
-            logger.info("Dados de exportação obtidos do cache")
-            return cached_data
 
+    try:
+        # Obter a última data de atualização
         url_last_update = 'https://api-comexstat.mdic.gov.br/general/dates/updated'
         response_last_update = requests.get(url_last_update, verify=False)
 
         if response_last_update.status_code == 200:
             data_last_update = response_last_update.json()
-            last_year = data_last_update['data']['year']
-            last_month = data_last_update['data']['monthNumber']
-            logger.info(f"Última atualização encontrada: {last_year}-{last_month}")
+            last_year = int(data_last_update['data']['year'])
+            last_month = int(data_last_update['data']['monthNumber'])
+            logger.info(f"Última atualização encontrada: {last_year}-{last_month:02}")
         else:
             logger.error(f"Erro ao obter a última data de atualização: {response_last_update.status_code} - {response_last_update.text}")
             return
 
-        params = {
+        # Headings a serem buscados (excluindo 0309)
+        headings = [
+            '0302', '0303', '0304', '0305', '0306', '0307', '0308', '1604', '1605',
+        ]
+        logger.info(f"Headings buscados: {', '.join(headings)}")
+
+        # Parâmetros comuns para a API
+        common_params = {
             'flow': 'export',
             'monthDetail': True,
-            'period': {
-                'from': '1997-01',
-                'to': f"{last_year}-{last_month:02}"
-            },
             'filters': [
                 {
                     'filter': 'heading',
-                    'values': [
-                        '0302', '0303', '0304', '0305', '0306', '0307', '0308', '0309', '1604', '1605',
-                    ],
-                },
-                {
-                    'filter': 'country',
-                    'values': [
-                        '756', '063', '069', '105', '149', '158', '160', '169', '687', '239',
-                        '245', '249', '267', '275', '305', '365', '379', '386', '399', '442',
-                        '474', '493', '499', '538', '548', '565', '580', '589', '607', '623',
-                        '628', '888', '791', '750', '776', '161', '845', '858',
-                    ],
-                },
+                    'values': headings,
+                }
             ],
             'details': ['country', 'state', 'ncm', 'heading'],
-            'metrics': ['metricFOB', 'metricKG'],
+            'metrics': ['metricFOB', 'metricKG']
+        }
+
+        # Solicitação para anos anteriores ao ano corrente (janeiro a dezembro)
+        params_anos_anteriores = {
+            **common_params,
+            'period': {
+                'from': '1997-01',
+                'to': f"{last_year-1}-12"
+            },
+        }
+
+        # Solicitação para o ano corrente (janeiro até o mês corrente)
+        params_ano_corrente = {
+            **common_params,
+            'period': {
+                'from': f"{last_year}-01",
+                'to': f"{last_year}-{last_month:02}"
+            },
         }
 
         url = 'https://api-comexstat.mdic.gov.br/general'
-        logger.info("Enviando solicitação para a API com parâmetros especificados.")
-        response = requests.post(url, json=params, verify=False)
-        logger.info("Status da resposta da API: %s", response.status_code)
-        response.raise_for_status()
 
-        logger.info("Resposta recebida com sucesso da API")
-        data = response.json()
+        # Solicitação para anos anteriores
+        logger.info("Enviando solicitação para a API para anos anteriores ao ano corrente.")
+        response_anos_anteriores = requests.post(url, json=params_anos_anteriores, verify=False)
+        logger.info(f"Status da resposta da API para anos anteriores: {response_anos_anteriores.status_code}")
+        response_anos_anteriores.raise_for_status()
+        data_anos_anteriores = response_anos_anteriores.json()
 
-        if 'data' not in data or 'list' not in data['data']:
-            logger.error("Lista de dados não encontrada na resposta da API.")
-            return
+        # Solicitação para o ano corrente
+        logger.info("Enviando solicitação para a API para o ano corrente.")
+        response_ano_corrente = requests.post(url, json=params_ano_corrente, verify=False)
+        logger.info(f"Status da resposta da API para o ano corrente: {response_ano_corrente.status_code}")
+        response_ano_corrente.raise_for_status()
+        data_ano_corrente = response_ano_corrente.json()
 
-        new_data = data['data']['list']
-        logger.info("Número de registros recebidos: %d", len(new_data))
+        # Combinar os dados
+        dados_totais = data_anos_anteriores['data']['list'] + data_ano_corrente['data']['list']
 
-        cache.set('export_data', new_data, timeout=settings.CACHE_TTL)
+        # Adicionar registros vazios para meses não disponíveis do ano corrente
+        for month in range(last_month + 1, 13):
+            empty_row = {
+                'coNcm': None,
+                'year': last_year,
+                'monthNumber': f"{month:02}",
+                'country': None,
+                'state': None,
+                'ncm': None,
+                'headingCode': None,
+                'heading': None,
+                'metricFOB': None,
+                'metricKG': None
+            }
+            dados_totais.append(empty_row)
+
+        new_data_hash = calculate_data_hash(dados_totais)
 
         BASE_DIR = Path(__file__).resolve().parent.parent
-
-        file_name = "dados_exportacao.csv"
+        file_name = "dados_exportacao.json"
         directory = BASE_DIR / 'data'
 
         if not directory.exists():
@@ -109,23 +142,21 @@ def fetch_and_update_export_data():
         file_path = directory / file_name
         logger.info(f"Caminho do arquivo: {file_path}")
 
+        if file_path.exists():
+            with open(file_path, 'r', encoding='utf-8') as file:
+                existing_data = json.load(file)
+            existing_data_hash = calculate_data_hash(existing_data)
+            if new_data_hash == existing_data_hash:
+                logger.info("Os dados não foram alterados. Não é necessário atualizar o arquivo.")
+                return
+            else:
+                logger.info("Os dados foram alterados. Atualizando o arquivo.")
+        else:
+            logger.info("O arquivo não existe. Criando um novo arquivo.")
+
         try:
-            with open(file_path, 'w', newline='', encoding='utf-8') as file:
-                writer = csv.writer(file)
-                headers = ["year", "monthNumber", "country", "state", "ncm", "heading", "metricFOB", "metricKG"]
-                writer.writerow(headers)
-                for item in new_data:
-                    row = [
-                        item.get("year", ""),
-                        item.get("monthNumber", ""),
-                        item.get("country", ""),
-                        item.get("state", ""),
-                        item.get("ncm", ""),
-                        item.get("heading", ""),
-                        item.get("metricFOB", ""),
-                        item.get("metricKG", "")
-                    ]
-                    writer.writerow(row)
+            with open(file_path, 'w', encoding='utf-8') as file:
+                json.dump(dados_totais, file, ensure_ascii=False, indent=4)
             logger.info(f"Dados salvos localmente em: {file_path}")
         except Exception as e:
             logger.error(f"Erro ao escrever dados no arquivo: {e}")
@@ -136,24 +167,21 @@ def fetch_and_update_export_data():
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
         )
-
         try:
-            response = s3_client.list_objects_v2(Bucket='jubart-dashboard', Prefix='data/dados_exportacao_')
-            if 'Contents' in response:
-                for obj in response['Contents']:
-                    s3_client.delete_object(Bucket='jubart-dashboard', Key=obj['Key'])
-                logger.info("Arquivos antigos de exportação deletados com sucesso do S3.")
+            s3_client.upload_file(str(file_path), 'jubart-dashboard', f"data/{file_name}")
+            logger.info(f"Arquivo enviado para o bucket S3: data/{file_name}")
         except Exception as e:
-            logger.error(f"Erro ao deletar arquivos antigos de exportação do S3: {e}")
+            logger.error(f"Erro ao enviar arquivo para o S3: {e}")
+            return
 
-        try:
-            s3_client.upload_file(file_path, 'jubart-dashboard', f"data/{file_name}")
-            logger.info("Arquivo de exportação enviado com sucesso para o S3.")
-            save_latest_file('export', f"data/{file_name}")
-        except Exception as e:
-            logger.error(f"Erro ao enviar o arquivo de exportação para o S3: {e}")
+        save_latest_file('export', f"data/{file_name}", last_month)
 
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Erro na solicitação para a API: {e}")
+        # Notificar via WebSocket após a atualização
+        notify_update({
+            'message': 'Dados de exportação atualizados',
+            'file_key': f"data/{file_name}",
+            'last_month': last_month,
+        })
+
     except Exception as e:
-        logger.error(f"Erro ao atualizar dados no banco de dados: {e}")
+        logger.error(f"Erro na tarefa de atualização de dados de exportação: {e}", exc_info=True)

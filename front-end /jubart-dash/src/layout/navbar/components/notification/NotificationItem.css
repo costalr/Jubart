@@ -1,0 +1,37 @@
+.notification-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #333;
+  }
+  
+  .notification-icon {
+    font-size: 15px;
+    margin-right: 10px;
+  }
+  
+  .notification-content {
+    flex-grow: 1;
+  }
+  
+  .notification-title {
+    display: flex;
+    font-size: 13px;
+    justify-content: space-between;
+  }
+  
+  .notification-time {
+    font-size: 10px;
+    color: #aaa;
+  }
+  
+  .notification-description {
+    font-size: 12px;
+    color: #ccc;
+  }
+  
+
+ 
+  .notification-clear {
+    font-size: 15px;
+  }

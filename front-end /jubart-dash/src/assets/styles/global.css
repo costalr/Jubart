@@ -1,0 +1,29 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Roboto:wght@400;700&display=swap');
+@import './variables.css';
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  color: var(--color-text-light);
+  background-color: var(--background-color);
+}
+
+/* Estilos globais */
+body {
+  font-family: 'Roboto', sans-serif;
+  height: 100vh;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Nunito', sans-serif;
+}
+
+a {
+  color: var(--color-primary); /* Certifique-se de usar a variável de cor correta */
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}

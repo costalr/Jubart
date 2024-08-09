@@ -1,0 +1,53 @@
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.main-layout {
+  display: flex;
+  flex-grow: 1;
+}
+
+.sidebar {
+  transition: width 0.3s ease;
+}
+
+.sidebar-expanded {
+  width: 250px;
+}
+
+.sidebar-collapsed {
+  width: 80px;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  transition: margin-left 0.3s ease;
+}
+
+
+
+.main-content {
+  flex-grow: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.selector-buttons {
+  margin-bottom: 20px;
+  display: flex;
+  gap: 20px;
+}
+
+.selector-buttons label {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.selector-buttons input {
+  margin-right: 8px;
+}

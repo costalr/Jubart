@@ -1,0 +1,24 @@
+/* variables.css */
+
+:root {
+    --color-primary: #F0B900;
+    --color-primary-light: #FFD54F;
+    --color-primary-dark: #B28900;
+  
+    --color-secondary: #34A853;
+    --color-secondary-light: #66BB6A;
+    --color-secondary-dark: #0B8043;
+  
+    --color-tertiary: #FFA500;
+    --color-tertiary-light: #FFCC80;
+    --color-tertiary-dark: #CC7A00;
+  
+    --background-color: #121212;
+    --toggle-button:  #020202;
+    --color-text-light: #FFFFFF;
+    --color-border: #DEE2E6;
+  
+    --color-lightest: #F8F9FA;
+    --color-darkest: #121212;
+  }
+  

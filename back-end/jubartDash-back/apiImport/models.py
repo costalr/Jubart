@@ -1,17 +1,18 @@
 from django.db import models
 
 class ImportDataModel(models.Model):
-    co_ncm = models.CharField(max_length=255)
-    year = models.CharField(max_length=4)
-    month_number = models.CharField(max_length=2)
-    country = models.CharField(max_length=255)
-    state = models.CharField(max_length=255)
-    ncm = models.CharField(max_length=255)
-    heading_code = models.CharField(max_length=255)
-    heading = models.CharField(max_length=255)
-    metric_fob = models.FloatField()
-    metric_kg = models.FloatField()
+    ncm = models.CharField(max_length=255)  
+    ano = models.CharField(max_length=4) 
+    mes = models.CharField(max_length=2)  
+    pais = models.CharField(max_length=255) 
+    estado = models.CharField(max_length=255) 
+    sh4 = models.CharField(max_length=255)  
+    total_usd = models.FloatField()  
+    total_kg = models.FloatField() 
+    categoria = models.CharField(max_length=255, null=True, blank=True)  
+    especie = models.CharField(max_length=255, null=True, blank=True)  
     unique_field = models.CharField(max_length=255, unique=True)
 
     def __str__(self):
-        return f"{self.co_ncm} - {self.year} - {self.month_number}"
+        return f"{self.ncm} - {self.ano} - {self.mes}"
+

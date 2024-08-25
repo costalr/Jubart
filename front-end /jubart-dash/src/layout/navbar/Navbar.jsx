@@ -38,7 +38,7 @@ const Navbar = ({ toggleSidebar, isSidebarExpanded }) => {
   }, []);
 
   return (
-    <nav className="navbar" style={{ zIndex: 1050, overflow: 'hidden'}} >
+    <nav className="navbar">
       <div className="navbar-left">
         <div className="logo-container">
           {isSidebarExpanded ? (

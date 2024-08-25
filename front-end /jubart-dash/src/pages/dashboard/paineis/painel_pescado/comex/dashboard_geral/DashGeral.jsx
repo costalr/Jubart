@@ -1,9 +1,13 @@
-// DashGeral.js
 import React from 'react';
+import { useOutletContext } from 'react-router-dom';
 import CardsGeral from './components/cards/CardsGeral';
 import GraficosGeral from './components/graficos/GraficosGeral';
 
-function DashGeral({ importData, exportData, error, referenceMonth, referenceYear }) {
+function DashGeral() {
+  // Recebe os dados do Outlet
+  const { importData, exportData, error, referenceMonth, referenceYear } = useOutletContext();
+
+
   return (
     <div className="dashboard dashboard-geral">
       <CardsGeral 

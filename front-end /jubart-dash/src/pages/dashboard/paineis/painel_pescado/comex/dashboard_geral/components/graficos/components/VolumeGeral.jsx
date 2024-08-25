@@ -12,21 +12,21 @@ const VolumeGeral = ({ selectedStartYear, selectedEndYear, selectedStartMonth, s
   useEffect(() => {
     if (importData && exportData) {
       const filteredImportData = importData.filter(item =>
-        parseInt(item.year) >= selectedStartYear &&
-        parseInt(item.year) <= selectedEndYear &&
-        parseInt(item.monthNumber) >= parseInt(selectedStartMonth) &&
-        parseInt(item.monthNumber) <= selectedEndMonth
+        parseInt(item.ano) >= selectedStartYear &&
+        parseInt(item.ano) <= selectedEndYear &&
+        parseInt(item.mes) >= parseInt(selectedStartMonth) &&
+        parseInt(item.mes) <= selectedEndMonth
       );
       const filteredExportData = exportData.filter(item =>
-        parseInt(item.year) >= selectedStartYear &&
-        parseInt(item.year) <= selectedEndYear &&
-        parseInt(item.monthNumber) >= parseInt(selectedStartMonth) &&
-        parseInt(item.monthNumber) <= selectedEndMonth
+        parseInt(item.ano) >= selectedStartYear &&
+        parseInt(item.ano) <= selectedEndYear &&
+        parseInt(item.mes) >= parseInt(selectedStartMonth) &&
+        parseInt(item.mes) <= selectedEndMonth
       );
 
       const calculateTotalVolume = (data, year) => {
-        const yearData = data.filter(item => parseInt(item.year) === year);
-        return yearData.reduce((acc, item) => acc + parseFloat(item.metricKG || 0), 0);
+        const yearData = data.filter(item => parseInt(item.ano) === year);
+        return yearData.reduce((acc, item) => acc + parseFloat(item.total_kg || 0), 0);
       };
 
       const allYears = Array.from({ length: selectedEndYear - selectedStartYear + 1 }, (_, i) => selectedStartYear + i);

@@ -1,13 +1,27 @@
 import axios from 'axios';
-import { getItem, setItem } from './indexedDB';
+import pako from 'pako';
+import { getRawItem, setRawItem } from './indexedDBRaw';
+import { getGroupedItem, setGroupedItem } from './indexedDBGrouped';
 
-// URL base da API
 const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
-// Obtém o hash dos dados
-const getHash = async (type) => {
+// Função para descomprimir dados GZ
+const decompressData = (compressedData) => {
     try {
-        const response = await axios.get(`${API_BASE_URL}/${type}/get_${type}_data_hash/`);
+        const binaryString = pako.inflate(compressedData, { to: 'string' });
+        const jsonData = JSON.parse(binaryString);
+        return jsonData;
+    } catch (error) {
+        console.error('Erro ao descomprimir os dados:', error);
+        return null;
+    }
+};
+
+// Obtém o hash dos dados
+const getHash = async (type, isGrouped) => {
+    const endpoint = isGrouped ? `get_${type}_grouped_data_hash` : `get_${type}_data_hash`;
+    try {
+        const response = await axios.get(`${API_BASE_URL}/${type}/${endpoint}/`);
         return response.data.hash;
     } catch (error) {
         console.error(`Erro ao obter hash de ${type}:`, error);
@@ -16,13 +30,13 @@ const getHash = async (type) => {
 };
 
 // Busca dados da API
-const fetchData = async (type) => {
+const fetchData = async (type, isGrouped) => {
+    const endpoint = isGrouped ? `get_${type}_grouped_data_url` : `get_${type}_data_url`;
     try {
-        // Obtém a URL dos dados
-        const { data: { url } } = await axios.get(`${API_BASE_URL}/${type}/get_${type}_data_url/`);
-        // Busca os dados na URL obtida
-        const response = await axios.get(url);
-        return response.data;
+        const { data: { url } } = await axios.get(`${API_BASE_URL}/${type}/${endpoint}/`);
+        const response = await axios.get(url, { responseType: 'arraybuffer' });
+        const decompressedData = decompressData(new Uint8Array(response.data));
+        return decompressedData;
     } catch (error) {
         console.error(`Erro ao buscar dados de ${type}:`, error);
         return [];
@@ -30,62 +44,41 @@ const fetchData = async (type) => {
 };
 
 // Busca dados de importação
-export const fetchImportData = async () => {
-    const hash = await getHash('import');
-    const cachedHash = await getItem('import_hash');
+export const fetchImportData = async (isGrouped = false) => {
+    try {
+        const hash = await getHash('import', isGrouped);
+        const cachedHash = await (isGrouped ? getGroupedItem('import_grouped_hash') : getRawItem('import_hash'));
 
-    if (hash === cachedHash) {
-        return await getItem('import_data');
-    } else {
-        const data = await fetchData('import');
-        await setItem('import_data', data);
-        await setItem('import_hash', hash);
-        return data;
+        if (hash === cachedHash) {
+            return await (isGrouped ? getGroupedItem('import_grouped_data') : getRawItem('import_data'));
+        } else {
+            const data = await fetchData('import', isGrouped);
+            await (isGrouped ? setGroupedItem('import_grouped_data', data) : setRawItem('import_data', data));
+            await (isGrouped ? setGroupedItem('import_grouped_hash', hash) : setRawItem('import_hash', hash));
+            return data;
+        }
+    } catch (error) {
+        console.error('Erro ao buscar dados de importação:', error);
+        return [];
     }
 };
 
 // Busca dados de exportação
-export const fetchExportData = async () => {
-    const hash = await getHash('export');
-    const cachedHash = await getItem('export_hash');
+export const fetchExportData = async (isGrouped = false) => {
+    try {
+        const hash = await getHash('export', isGrouped);
+        const cachedHash = await (isGrouped ? getGroupedItem('export_grouped_hash') : getRawItem('export_hash'));
 
-    if (hash === cachedHash) {
-        return await getItem('export_data');
-    } else {
-        const data = await fetchData('export');
-        await setItem('export_data', data);
-        await setItem('export_hash', hash);
-        return data;
-    }
-};
-
-// Configura o WebSocket
-export const setupWebSocket = (onMessageCallback) => {
-    const ws = new WebSocket('wss://9z8gdf7u5j.execute-api.us-east-1.amazonaws.com/production/');
-
-    ws.onmessage = async (event) => {
-        const data = JSON.parse(event.data);
-
-        if (data.action === 'file_update') {
-            if (data.bucket === 'jubart-dashboard') {
-                const importData = await fetchImportData();
-                const exportData = await fetchExportData();
-                onMessageCallback({ importData, exportData });
-            }
+        if (hash === cachedHash) {
+            return await (isGrouped ? getGroupedItem('export_grouped_data') : getRawItem('export_data'));
+        } else {
+            const data = await fetchData('export', isGrouped);
+            await (isGrouped ? setGroupedItem('export_grouped_data', data) : setRawItem('export_data', data));
+            await (isGrouped ? setGroupedItem('export_grouped_hash', hash) : setRawItem('export_hash', hash));
+            return data;
         }
-    };
-
-    ws.onerror = (error) => {
-        console.error('WebSocket Error:', error);
-    };
-
-    ws.onopen = () => {
-        console.log('WebSocket connection established');
-    };
-
-    ws.onclose = () => {
-        console.log('WebSocket connection closed');
-    };
-
-    return ws;
+    } catch (error) {
+        console.error('Erro ao buscar dados de exportação:', error);
+        return [];
+    }
 };

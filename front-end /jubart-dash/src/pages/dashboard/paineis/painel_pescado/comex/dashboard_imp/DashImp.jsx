@@ -1,23 +1,40 @@
 import React from 'react';
-import CardsImp from './components/cards/CardsImp';
-import GraficosImp from './components/graficos/GraficosImp';
-import TabelasImp from './components/tabelas/TabelasImp';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import ImpPaises from '../dashboard_imp/imp_paises/ImpPaises';
+import ImpNCM from '../dashboard_imp/imp_ncm/ImpNCM';
+import ImpEstados from '../dashboard_imp/imp_estados/ImpEstados';
+import ImpEspecies from '../dashboard_imp/imp_especies/ImpEspecies';
+import ImpCategorias from '../dashboard_imp/imp_categorias/ImpCategorias';
 
 function DashImp({ importData, referenceMonth, referenceYear }) {
-  console.log("DashImp - Data:", { importData, referenceMonth, referenceYear });
-
-  if (!importData || !importData.length || referenceMonth === null || referenceYear === null) {
-    return <div>Loading...</div>;
-  }
-
   return (
-    <div className="dashboard dashboard-importacao">
-      <CardsImp importData={importData} referenceMonth={referenceMonth} referenceYear={referenceYear} />
-      <GraficosImp importData={importData} />
-      <TabelasImp importData={importData} />
+    <div className="dashboard-importacao">
+      <h1>Dashboard de Importação</h1>
+      <Routes>
+        <Route 
+          path="paises" 
+          element={<ImpPaises importData={importData} referenceMonth={referenceMonth} referenceYear={referenceYear} />} 
+        />
+        <Route 
+          path="ncm" 
+          element={<ImpNCM importData={importData} referenceMonth={referenceMonth} referenceYear={referenceYear} />} 
+        />
+        <Route 
+          path="estados" 
+          element={<ImpEstados importData={importData} referenceMonth={referenceMonth} referenceYear={referenceYear} />} 
+        />
+        <Route 
+          path="especies" 
+          element={<ImpEspecies importData={importData} referenceMonth={referenceMonth} referenceYear={referenceYear} />} 
+        />
+        <Route 
+          path="categorias" 
+          element={<ImpCategorias importData={importData} referenceMonth={referenceMonth} referenceYear={referenceYear} />} 
+        />
+        <Route path="/" element={<Navigate to="paises" />} />
+      </Routes>
     </div>
   );
 }
-
 
 export default DashImp;

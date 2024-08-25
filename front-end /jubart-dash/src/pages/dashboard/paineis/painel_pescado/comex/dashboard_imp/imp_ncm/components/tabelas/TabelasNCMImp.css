@@ -1,0 +1,48 @@
+
+/* Estilo geral para centralizar e estilizar a tabela */
+.table-container {
+    width: 100%;
+    overflow-x: auto; /* Permite rolagem horizontal se necessário */
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Centraliza o conteúdo na horizontal */
+    margin: 20px 0; /* Espaçamento superior e inferior */
+}
+
+table {
+    border-collapse: collapse; /* Remove espaços entre as bordas das células */
+    margin: auto; /* Centraliza a tabela horizontalmente */
+    background-color: #f8f9fa; /* Cor de fundo da tabela */
+    color: #333; /* Cor do texto */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* Sombra ao redor da tabela */
+    width: 90%; /* Largura da tabela */
+    max-width: 1200px; /* Máximo de largura da tabela */
+}
+
+th, td {
+    border: 1px solid #dee2e6; /* Cor da borda */
+    padding: 8px 12px; /* Espaçamento interno */
+    text-align: center; /* Alinhamento do texto */
+}
+
+th {
+    background-color: #007bff; /* Cor de fundo do cabeçalho */
+    color: #ffffff; /* Cor do texto do cabeçalho */
+    font-weight: bold; /* Peso da fonte */
+}
+
+/* Estilo para o cabeçalho fixo ao rolar a página, se necessário */
+thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+/* Adicionando divisões entre linhas */
+tbody tr:nth-child(odd) {
+    background-color: #f2f2f2; /* Cor de fundo para linhas ímpares */
+}
+
+tbody tr:hover {
+    background-color: #ddd; /* Cor de fundo ao passar o mouse */
+}

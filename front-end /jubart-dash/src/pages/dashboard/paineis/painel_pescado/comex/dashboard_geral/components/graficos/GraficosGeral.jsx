@@ -1,4 +1,3 @@
-// GraficosGeral.js
 import React, { useState } from 'react';
 import BalancaComercialGeral from './components/BalancaComercialGeral';
 import PrecoMedioGeral from './components/PrecoMedioGeral';

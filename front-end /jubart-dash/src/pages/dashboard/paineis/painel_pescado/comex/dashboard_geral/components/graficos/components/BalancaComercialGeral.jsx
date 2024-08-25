@@ -1,6 +1,6 @@
-import React, { useRef, useEffect, useState } from 'react'; // Importar React e os hooks
-import { Line } from 'react-chartjs-2'; // Importar o componente Line de react-chartjs-2
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js'; // Importar componentes do Chart.js
+import React, { useRef, useEffect, useState } from 'react';
+import { Line } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
 
 ChartJS.register(
   CategoryScale,
@@ -17,14 +17,18 @@ const BalancaComercialGeral = ({ selectedStartYear, selectedEndYear, importData,
   const chartRef = useRef(null);
 
   useEffect(() => {
+    if (!importData || !exportData) {
+      return; // Se os dados não estão disponíveis, sai da função
+    }
+
     const aggregateDataByYear = (data) => {
       return data.reduce((acc, item) => {
-        const year = parseInt(item.year);
+        const year = parseInt(item.ano);
         if (year >= selectedStartYear && year <= selectedEndYear) {
           if (!acc[year]) {
             acc[year] = { totalFOB: 0 };
           }
-          acc[year].totalFOB += parseFloat(item.metricFOB);
+          acc[year].totalFOB += parseFloat(item.total_usd);
         }
         return acc;
       }, {});
@@ -34,8 +38,8 @@ const BalancaComercialGeral = ({ selectedStartYear, selectedEndYear, importData,
     const exportAggregated = aggregateDataByYear(exportData);
 
     const years = Object.keys(importAggregated).concat(Object.keys(exportAggregated))
-                       .filter((value, index, self) => self.indexOf(value) === index)
-                       .sort();
+      .filter((value, index, self) => self.indexOf(value) === index)
+      .sort();
 
     const importVolumes = years.map(year => importAggregated[year]?.totalFOB || 0);
     const exportVolumes = years.map(year => exportAggregated[year]?.totalFOB || 0);
@@ -68,24 +72,43 @@ const BalancaComercialGeral = ({ selectedStartYear, selectedEndYear, importData,
 
   const options = {
     responsive: true,
+    plugins: {
+      legend: {
+        position: 'right',
+        align: 'start',
+        title: {
+          display: true,
+          text: 'Variáveis',
+          color: 'grey'
+        }
+      },
+    },
     scales: {
       y: {
         beginAtZero: true,
         title: {
           display: true,
           text: 'US$'
+        },
+        ticks: {
+          callback: function (value) {
+            return (value / 1e9).toFixed(1) + 'B'; // Dividindo por 1 bilhão e formatando para "B"
+          },
+          stepSize: 500000000, // Definindo um passo de 0.5B (500 milhões)
         }
       },
       x: {
         title: {
           display: true,
           text: 'Ano'
-        }
-      }
-    },
-    plugins: {
-      legend: {
-        position: 'top'
+        },
+        type: 'linear',
+        min: selectedStartYear,
+        max: selectedEndYear,
+        ticks: {
+          stepSize: 2,
+          callback: (value) => value.toString(),
+        },
       }
     }
   };
@@ -108,5 +131,6 @@ const BalancaComercialGeral = ({ selectedStartYear, selectedEndYear, importData,
     </div>
   );
 };
+
 
 export default BalancaComercialGeral;

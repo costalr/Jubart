@@ -4,6 +4,7 @@ import pandas as pd
 import json
 import hashlib
 import boto3
+import gzip
 from pathlib import Path
 from apiCommon.models import LatestFile
 from django.conf import settings
@@ -16,7 +17,7 @@ def calculate_data_hash(data):
     data_string = json.dumps(data, sort_keys=True)
     return hashlib.md5(data_string.encode('utf-8')).hexdigest()
 
-def save_latest_file(file_type, file_key, last_month, last_year):
+def save_latest_file(file_type, file_key, last_month, last_year, file_hash=None):
     try:
         # Exclui todos os registros antigos desse tipo de arquivo
         LatestFile.objects.filter(file_type=file_type).delete()
@@ -26,7 +27,8 @@ def save_latest_file(file_type, file_key, last_month, last_year):
             file_type=file_type, 
             file_key=file_key, 
             last_month=last_month,
-            last_year=last_year
+            last_year=last_year,
+            file_hash=file_hash  # Armazena o hash do arquivo
         )
         latest_file.save()
         logger.info(f"Registro salvo com sucesso: {latest_file.file_key} para {latest_file.last_year}-{latest_file.last_month}")
@@ -122,10 +124,6 @@ def fetch_and_update_import_data():
             ncm_codigo = item['coNcm']  # Usar o código NCM correto
             ncm_info = mapeamento_dict.get(ncm_codigo)
 
-            # Log para verificar o NCM e as informações encontradas
-            logger.info(f"Verificando item {idx + 1} com NCM: {ncm_codigo}")
-            logger.info(f"Informações encontradas: {ncm_info}")
-
             if ncm_info:
                 item['Categoria'] = ncm_info.get('Categoria', 'Desconhecida')
                 item['Espécie'] = ncm_info.get('Espécie', 'Desconhecida')
@@ -144,16 +142,17 @@ def fetch_and_update_import_data():
 
         df_dados = pd.DataFrame(dados_totais)
 
-        # Salvar dados brutos no JSON principal
-        file_name = "dados_importacao.json"
+        # Salvar dados brutos no JSON principal e comprimido
+        file_name = "dados_importacao.json.gz"
         directory = Path(__file__).resolve().parent.parent / 'data'
         file_path = directory / file_name
 
         if not directory.exists():
             directory.mkdir(parents=True, exist_ok=True)
 
+        # Verificar e atualizar o arquivo de dados brutos se necessário
         if file_path.exists():
-            with open(file_path, 'r', encoding='utf-8') as file:
+            with gzip.open(file_path, 'rt', encoding='utf-8') as file:
                 existing_data = json.load(file)
             existing_data_hash = calculate_data_hash(existing_data)
             if calculate_data_hash(dados_totais) == existing_data_hash:
@@ -164,12 +163,15 @@ def fetch_and_update_import_data():
         else:
             logger.info("O arquivo não existe. Criando um novo arquivo.")
 
-        with open(file_path, 'w', encoding='utf-8') as file:
-            json.dump(dados_totais, file, ensure_ascii=False, indent=4)
+        with gzip.open(file_path, 'wt', encoding='utf-8') as file:
+            json.dump(dados_totais, file, separators=(',', ':'), ensure_ascii=False)
         logger.info(f"Dados salvos localmente em: {file_path}")
 
-        # Salvar dados agrupados em um arquivo JSON separado
-        grupos_file_name = "dados_importacao_agrupados.json"
+        # Salvar hash do arquivo de dados brutos
+        save_latest_file('import', f"data/{file_name}", last_month, last_year, calculate_data_hash(dados_totais))
+
+        # Salvar dados agrupados em um arquivo JSON separado e comprimido
+        grupos_file_name = "dados_importacao_agrupados.json.gz"
         grupos_file_path = directory / grupos_file_name
 
         grupos = {
@@ -180,8 +182,8 @@ def fetch_and_update_import_data():
             'por_estado': df_dados.groupby('estado').apply(lambda x: x.to_dict(orient='records')).to_dict(),
         }
 
-        with open(grupos_file_path, 'w', encoding='utf-8') as f:
-            json.dump(grupos, f, ensure_ascii=False, indent=4)
+        with gzip.open(grupos_file_path, 'wt', encoding='utf-8') as f:
+            json.dump(grupos, f, separators=(',', ':'), ensure_ascii=False)
         logger.info(f"Dados agrupados salvos localmente em: {grupos_file_path}")
 
         # Fazer o upload dos arquivos para o S3
@@ -196,7 +198,8 @@ def fetch_and_update_import_data():
             logger.error(f"Erro ao enviar arquivos para o S3: {e}")
             return
 
-        save_latest_file('import', f"data/{file_name}", last_month, last_year)
+        # Salvar hash dos dados agrupados
+        save_latest_file('import_grouped', f"data/{grupos_file_name}", last_month, last_year, calculate_data_hash(grupos))
 
         # Notificar via WebSocket após a atualização
         notify_update({

@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import DashGeral from './dashboard_geral/DashGeral';
-import DashImp from './dashboard_imp/DashImp';
-import DashExp from './dashboard_exp/DashExp';
+import { Outlet } from 'react-router-dom';
 import './Comex.css';
 import { fetchImportData, fetchExportData } from '../../../../../api/fetchApi';
 import { clearIndexedDB } from '../../../../../api/clearIndexedDB';
-import { setupWebSocket } from '../../../../../api/fetchApi';
-import { getItem, setItem } from '../../../../../api/indexedDB';
+import { getRawItem, setRawItem } from '../../../../../api/indexedDBRaw';
 
-function Comex({ selectedSection }) {
-  const [importData, setImportData] = useState([]);
-  const [exportData, setExportData] = useState([]);
+function Comex() {
+  const [importData, setImportData] = useState(null);
+  const [exportData, setExportData] = useState(null);
   const [referenceMonth, setReferenceMonth] = useState(null);
   const [referenceYear, setReferenceYear] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -20,27 +17,34 @@ function Comex({ selectedSection }) {
     const loadData = async () => {
       try {
         setLoading(true);
-        let cachedImportData = await getItem('import_data');
-        let cachedExportData = await getItem('export_data');
 
-        if (!Array.isArray(cachedImportData)) {
-          cachedImportData = await fetchImportData();
-          await setItem('import_data', cachedImportData);
-        }
-        if (!Array.isArray(cachedExportData)) {
-          cachedExportData = await fetchExportData();
-          await setItem('export_data', cachedExportData);
+        let cachedImportData = await getRawItem('import_data');
+        let cachedExportData = await getRawItem('export_data');
+
+        if (!cachedImportData) {
+          const fetchedImportData = await fetchImportData();
+          cachedImportData = fetchedImportData;
+          await setRawItem('import_data', cachedImportData);
         }
 
-        setImportData(cachedImportData || []);
-        setExportData(cachedExportData || []);
+        if (!cachedExportData) {
+          const fetchedExportData = await fetchExportData();
+          cachedExportData = fetchedExportData;
+          await setRawItem('export_data', cachedExportData);
+        }
+
+        setImportData(cachedImportData);
+        setExportData(cachedExportData);
 
         const getLastValidMonthYear = (data) => {
-          return data
-            .filter(item => item.metricKG && item.metricFOB)
+          if (!data) return { year: 0, month: 0 };
+
+          return Object.values(data)
+            .flat()
+            .filter(item => item.total_kg && item.total_usd)
             .map(item => ({
-              year: parseInt(item.year),
-              month: parseInt(item.monthNumber)
+              year: parseInt(item.ano),
+              month: parseInt(item.mes)
             }))
             .reduce((max, current) => current.year > max.year || (current.year === max.year && current.month > max.month) ? current : max, { year: 0, month: 0 });
         };
@@ -56,8 +60,9 @@ function Comex({ selectedSection }) {
 
         setReferenceMonth(lastMonthAvailable);
         setReferenceYear(lastYearAvailable);
+
+
       } catch (err) {
-        console.error('Error loading data:', err);
         setError(err);
       } finally {
         setLoading(false);
@@ -65,44 +70,17 @@ function Comex({ selectedSection }) {
     };
 
     loadData();
-    const ws = setupWebSocket(({ importData, exportData }) => {
-      setImportData(importData);
-      setExportData(exportData);
-    });
-
-    return () => ws.close();
   }, []);
 
   const clearCache = async () => {
     try {
       await clearIndexedDB();
-      setImportData([]);
-      setExportData([]);
+      setImportData(null);
+      setExportData(null);
       setReferenceMonth(null);
       setReferenceYear(null);
     } catch (error) {
       console.error('Error clearing cache:', error);
-    }
-  };
-
-  const renderSection = () => {
-    switch (selectedSection) {
-      case 'geral':
-        return <DashGeral importData={importData} exportData={exportData} error={error} referenceMonth={referenceMonth} referenceYear={referenceYear} />;
-      case 'import':
-        if (referenceYear && referenceMonth) {
-          return <DashImp importData={importData} referenceMonth={referenceMonth} referenceYear={referenceYear} />;
-        } else {
-          return <div>Loading or insufficient data...</div>;
-        }
-      case 'export':
-        if (referenceYear && referenceMonth) {
-          return <DashExp exportData={exportData} referenceMonth={referenceMonth} referenceYear={referenceYear} />;
-        } else {
-          return <div>Loading or insufficient data...</div>;
-        }
-      default:
-        return <div>No section selected</div>;
     }
   };
 
@@ -113,7 +91,7 @@ function Comex({ selectedSection }) {
     <div className="comex-container">
       <div className="painel-secundario comex-painel">
         <button onClick={clearCache}>Limpar Cache</button>
-        {renderSection()}
+        <Outlet context={{ importData, exportData, referenceMonth, referenceYear }} />
       </div>
     </div>
   );

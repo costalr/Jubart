@@ -1,4 +1,3 @@
-// CardsGeral.js
 import React from 'react';
 import '../../../shared/Cards.css';
 
@@ -8,37 +7,39 @@ const CardsGeral = ({ importData = [], exportData = [], error, referenceMonth, r
   const calculateMetricAndVariation = (data, year, month, metric) => {
     if (!Array.isArray(data)) return { metric: '0.00', metricChange: 'N/A' };
 
-    const currentYearData = data.filter(item => parseInt(item.year) === year && parseInt(item.monthNumber) <= month);
-    const previousYearData = data.filter(item => parseInt(item.year) === year - 1 && parseInt(item.monthNumber) <= month);
+    const currentYearData = data.filter(item => parseInt(item.ano) === year && parseInt(item.mes) <= month);
+    const previousYearData = data.filter(item => parseInt(item.ano) === year - 1 && parseInt(item.mes) <= month);
 
-    const currentYearMetric = (currentYearData.reduce((sum, item) => sum + (parseFloat(item[metric]) || 0), 0) / 1000);
+    const currentYearMetric = currentYearData.reduce((sum, item) => sum + (parseFloat(item[metric]) || 0), 0) / 1000;
     const previousYearMetric = previousYearData.reduce((sum, item) => sum + (parseFloat(item[metric]) || 0), 0) / 1000;
 
     const metricChange = previousYearMetric === 0 ? 'N/A' : ((currentYearMetric - previousYearMetric) / previousYearMetric) * 100;
+
     return { 
       metric: currentYearMetric.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), 
-      metricChange: metricChange.toFixed(2) 
+      metricChange: typeof metricChange === 'number' ? metricChange.toFixed(2) : metricChange 
     };
   };
 
   const calculateAveragePriceAndVariation = (data, year, month) => {
     if (!Array.isArray(data)) return { averagePrice: '0.00', averagePriceChange: 'N/A' };
 
-    const currentYearData = data.filter(item => parseInt(item.year) === year && parseInt(item.monthNumber) <= month);
-    const previousYearData = data.filter(item => parseInt(item.year) === year - 1 && parseInt(item.monthNumber) <= month);
+    const currentYearData = data.filter(item => parseInt(item.ano) === year && parseInt(item.mes) <= month);
+    const previousYearData = data.filter(item => parseInt(item.ano) === year - 1 && parseInt(item.mes) <= month);
 
-    const currentYearRevenue = currentYearData.reduce((sum, item) => sum + (parseFloat(item.metricFOB) || 0), 0);
-    const currentYearVolume = currentYearData.reduce((sum, item) => sum + (parseFloat(item.metricKG) || 0), 0) / 1000;
-    const previousYearRevenue = previousYearData.reduce((sum, item) => sum + (parseFloat(item.metricFOB) || 0), 0);
-    const previousYearVolume = previousYearData.reduce((sum, item) => sum + (parseFloat(item.metricKG) || 0), 0) / 1000;
+    const currentYearRevenue = currentYearData.reduce((sum, item) => sum + (parseFloat(item.total_usd) || 0), 0);
+    const currentYearVolume = currentYearData.reduce((sum, item) => sum + (parseFloat(item.total_kg) || 0), 0) / 1000;
+    const previousYearRevenue = previousYearData.reduce((sum, item) => sum + (parseFloat(item.total_usd) || 0), 0);
+    const previousYearVolume = previousYearData.reduce((sum, item) => sum + (parseFloat(item.total_kg) || 0), 0) / 1000;
 
     const currentYearAveragePrice = currentYearVolume === 0 ? 0 : currentYearRevenue / currentYearVolume;
     const previousYearAveragePrice = previousYearVolume === 0 ? 0 : previousYearRevenue / previousYearVolume;
+
     const averagePriceChange = previousYearAveragePrice === 0 ? 'N/A' : ((currentYearAveragePrice - previousYearAveragePrice) / previousYearAveragePrice) * 100;
 
     return { 
       averagePrice: currentYearAveragePrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), 
-      averagePriceChange: averagePriceChange.toFixed(2) 
+      averagePriceChange: typeof averagePriceChange === 'number' ? averagePriceChange.toFixed(2) : averagePriceChange 
     };
   };
 
@@ -50,10 +51,10 @@ const CardsGeral = ({ importData = [], exportData = [], error, referenceMonth, r
     return <div>Loading...</div>;
   }
 
-  const importVolumeStats = calculateMetricAndVariation(importData, referenceYear, referenceMonth, 'metricKG');
-  const exportVolumeStats = calculateMetricAndVariation(exportData, referenceYear, referenceMonth, 'metricKG');
-  const importRevenueStats = calculateMetricAndVariation(importData, referenceYear, referenceMonth, 'metricFOB');
-  const exportRevenueStats = calculateMetricAndVariation(exportData, referenceYear, referenceMonth, 'metricFOB');
+  const importVolumeStats = calculateMetricAndVariation(importData, referenceYear, referenceMonth, 'total_kg');
+  const exportVolumeStats = calculateMetricAndVariation(exportData, referenceYear, referenceMonth, 'total_kg');
+  const importRevenueStats = calculateMetricAndVariation(importData, referenceYear, referenceMonth, 'total_usd');
+  const exportRevenueStats = calculateMetricAndVariation(exportData, referenceYear, referenceMonth, 'total_usd');
   const importAveragePriceStats = calculateAveragePriceAndVariation(importData, referenceYear, referenceMonth);
   const exportAveragePriceStats = calculateAveragePriceAndVariation(exportData, referenceYear, referenceMonth);
 

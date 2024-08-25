@@ -15,24 +15,24 @@ const PrecoMedioGeral = ({ selectedStartYear, selectedEndYear, selectedStartMont
   useEffect(() => {
     if (importData && exportData) {
       const filteredImportData = importData.filter(item =>
-        parseInt(item.year) >= selectedStartYear &&
-        parseInt(item.year) <= selectedEndYear &&
-        parseInt(item.monthNumber) >= parseInt(selectedStartMonth) &&
-        parseInt(item.monthNumber) <= selectedEndMonth
+        parseInt(item.ano) >= selectedStartYear &&
+        parseInt(item.ano) <= selectedEndYear &&
+        parseInt(item.mes) >= parseInt(selectedStartMonth) &&
+        parseInt(item.mes) <= selectedEndMonth
       );
       const filteredExportData = exportData.filter(item =>
-        parseInt(item.year) >= selectedStartYear &&
-        parseInt(item.year) <= selectedEndYear &&
-        parseInt(item.monthNumber) >= parseInt(selectedStartMonth) &&
-        parseInt(item.monthNumber) <= selectedEndMonth
+        parseInt(item.ano) >= selectedStartYear &&
+        parseInt(item.ano) <= selectedEndYear &&
+        parseInt(item.mes) >= parseInt(selectedStartMonth) &&
+        parseInt(item.mes) <= selectedEndMonth
       );
 
       const allYears = Array.from({ length: selectedEndYear - selectedStartYear + 1 }, (_, i) => selectedStartYear + i);
 
       const calculateAveragePrice = (data, year) => {
-        const yearData = data.filter(item => parseInt(item.year) === year);
-        const totalVolume = yearData.reduce((acc, item) => acc + parseFloat(item.metricKG || 0), 0);
-        const totalValue = yearData.reduce((acc, item) => acc + parseFloat(item.metricFOB || 0), 0);
+        const yearData = data.filter(item => parseInt(item.ano) === year);
+        const totalVolume = yearData.reduce((acc, item) => acc + parseFloat(item.total_kg || 0), 0);
+        const totalValue = yearData.reduce((acc, item) => acc + parseFloat(item.total_usd || 0), 0);
         return totalVolume > 0 ? totalValue / totalVolume : 0;
       };
 
@@ -97,7 +97,7 @@ const PrecoMedioGeral = ({ selectedStartYear, selectedEndYear, selectedStartMont
         min: selectedStartYear,
         max: selectedEndYear,
         ticks: {
-          stepSize: 1,
+          stepSize: 2,
           callback: (value) => value.toString(),
         },
         grid: {
@@ -161,7 +161,7 @@ const PrecoMedioGeral = ({ selectedStartYear, selectedEndYear, selectedStartMont
     <div>
       <h2>Média dos Preços Anuais de Comércio Exterior</h2>
       <Line ref={chartRef} data={data} options={options} />
-      <button  onClick={downloadChart}>Clique aqui para baixar o gráfico</button>
+      <button onClick={downloadChart}>Clique aqui para baixar o gráfico</button>
     </div>
   );
 };

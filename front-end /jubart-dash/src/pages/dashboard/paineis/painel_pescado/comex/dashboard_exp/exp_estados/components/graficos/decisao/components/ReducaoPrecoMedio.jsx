@@ -4,61 +4,61 @@ import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Toolti
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-const ReducaoPrecoMedioImp = ({ importData, startYear, endYear, startMonth, endMonth }) => {
+const ReducaoPrecoMedioExp = ({ exportData, startYear, endYear, startMonth, endMonth }) => {
   const [chartData, setChartData] = useState(null);
   const chartRef = useRef(null);
 
   useEffect(() => {
     const processData = () => {
-      let statsByCountry = {};
+      let statsByState = {};
 
-      importData.forEach(item => {
-        if (item.year >= startYear && item.year <= endYear && item.monthNumber >= startMonth && item.monthNumber <= endMonth) {
-          const key = `${item.country}-${item.year}-${item.monthNumber}`;
-          if (!statsByCountry[key]) {
-            statsByCountry[key] = { totalFOB: 0, totalKG: 0 };
+      exportData.forEach(item => {
+        if (item.ano >= startYear && item.ano <= endYear && item.mes >= startMonth && item.mes <= endMonth) {
+          const key = `${item.estado}-${item.ano}-${item.mes}`;
+          if (!statsByState[key]) {
+            statsByState[key] = { totalFOB: 0, totalKG: 0 };
           }
-          statsByCountry[key].totalFOB += parseFloat(item.metricFOB);
-          statsByCountry[key].totalKG += parseFloat(item.metricKG);
+          statsByState[key].totalFOB += parseFloat(item.total_usd);
+          statsByState[key].totalKG += parseFloat(item.total_kg);
         }
       });
 
       let priceChanges = [];
-      Object.keys(statsByCountry).forEach(key => {
-        const [country, year, month] = key.split('-');
-        const { totalFOB, totalKG } = statsByCountry[key];
+      Object.keys(statsByState).forEach(key => {
+        const [state, year, month] = key.split('-');
+        const { totalFOB, totalKG } = statsByState[key];
         const avgPrice = totalKG > 0 ? totalFOB / totalKG : 0;
 
-        if (priceChanges[country]) {
-          const lastData = priceChanges[country].pop();
+        if (priceChanges[state]) {
+          const lastData = priceChanges[state].pop();
           const lastAvgPrice = lastData.avgPrice;
           const percentChange = ((lastAvgPrice - avgPrice) / lastAvgPrice) * 100;
 
-          priceChanges[country].push(lastData); // Push back the last data
+          priceChanges[state].push(lastData); // Push back the last data
           if (percentChange > 0) { // We only care about negative changes shown positively
-            priceChanges[country].push({ year, month, avgPrice, percentChange });
+            priceChanges[state].push({ year, month, avgPrice, percentChange });
           }
         } else {
-          priceChanges[country] = [{ year, month, avgPrice, percentChange: 0 }];
+          priceChanges[state] = [{ year, month, avgPrice, percentChange: 0 }];
         }
       });
 
-      // Select the highest price reduction for each country
+      // Select the highest price reduction for each state
       let finalData = [];
-      Object.keys(priceChanges).forEach(country => {
-        let maxChange = priceChanges[country].reduce((max, item) => item.percentChange > max.percentChange ? item : max, { percentChange: -Infinity });
+      Object.keys(priceChanges).forEach(state => {
+        let maxChange = priceChanges[state].reduce((max, item) => item.percentChange > max.percentChange ? item : max, { percentChange: -Infinity });
         if (maxChange.percentChange > 0) {
-          finalData.push({ country, percentChange: maxChange.percentChange });
+          finalData.push({ state, percentChange: maxChange.percentChange });
         }
       });
 
       finalData.sort((a, b) => b.percentChange - a.percentChange); // Sort descending by percent change
-      return finalData.slice(0, 10); // Top 10 countries
+      return finalData.slice(0, 10); // Top 10 states
     };
 
     const finalData = processData();
     setChartData({
-      labels: finalData.map(v => v.country),
+      labels: finalData.map(v => v.state),
       datasets: [{
         label: 'Redução %PM',
         data: finalData.map(v => v.percentChange),
@@ -67,7 +67,7 @@ const ReducaoPrecoMedioImp = ({ importData, startYear, endYear, startMonth, endM
         borderWidth: 1
       }]
     });
-  }, [importData, startYear, endYear, startMonth, endMonth]);
+  }, [exportData, startYear, endYear, startMonth, endMonth]);
 
   const downloadChart = () => {
     const canvas = chartRef.current.canvas;
@@ -113,7 +113,7 @@ const ReducaoPrecoMedioImp = ({ importData, startYear, endYear, startMonth, endM
       x: {
         title: {
           display: true,
-          text: 'Países'
+          text: 'Estados'
         }
       },
       y: {
@@ -132,7 +132,7 @@ const ReducaoPrecoMedioImp = ({ importData, startYear, endYear, startMonth, endM
 
   return (
     <div>
-      <h2>Maiores reduções do preço médio</h2>
+      <h2>Maiores reduções do preço médio por Estado</h2>
       {chartData ? (
         <>
           <Bar ref={chartRef} data={chartData} options={options} />
@@ -143,4 +143,4 @@ const ReducaoPrecoMedioImp = ({ importData, startYear, endYear, startMonth, endM
   );
 };
 
-export default ReducaoPrecoMedioImp;
+export default ReducaoPrecoMedioExp;

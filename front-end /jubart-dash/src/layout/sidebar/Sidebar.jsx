@@ -6,7 +6,6 @@ import { fetchImportData, fetchExportData } from '../../api/fetchApi';
 import { getGroupedItem } from '../../api/indexedDBGrouped';
 import { useNavigate } from 'react-router-dom';
 
-
 const Sidebar = ({ isExpanded, onSectionChange }) => {
   const [activeMenu, setActiveMenu] = useState(null);
   const [activeSubMenu, setActiveSubMenu] = useState({});
@@ -136,6 +135,27 @@ const Sidebar = ({ isExpanded, onSectionChange }) => {
     ncm: 'um NCM específico?',
   };
 
+  const navigateToPage = (reportType, submenuType) => {
+    const routes = {
+      importacao: {
+        paises: '/dashboard/importacao/paises',
+        estados: '/dashboard/importacao/estados',
+        categorias: '/dashboard/importacao/categorias',
+        especies: '/dashboard/importacao/especies',
+        ncm: '/dashboard/importacao/ncm',
+      },
+      exportacao: {
+        paises: '/dashboard/exportacao/paises',
+        estados: '/dashboard/exportacao/estados',
+        categorias: '/dashboard/exportacao/categorias',
+        especies: '/dashboard/exportacao/especies',
+        ncm: '/dashboard/exportacao/ncm',
+      },
+    };
+
+    navigate(routes[submenuType][reportType]);
+  };
+
   return (
     <div className={`sidebar ${isExpanded ? 'expanded' : 'collapsed'}`}>
       <ul className="sidebar-menu">
@@ -193,7 +213,11 @@ const Sidebar = ({ isExpanded, onSectionChange }) => {
                         {activeSubMenu['comex'] === reportType && (
                           <ul className="report-options">
                             {['paises', 'estados', 'categorias', 'especies', 'ncm'].map((option) => (
-                              <li className="comex-submenu-item" key={option} onClick={(e) => e.stopPropagation()}>
+                              <li className="comex-submenu-item" key={option} onClick={(e) => {
+                                e.stopPropagation();
+                                handleReportTypeChange(option);
+                                navigateToPage(option, reportType);
+                              }}>
                                 <label>
                                   <input
                                     type="radio"
@@ -315,5 +339,3 @@ const Sidebar = ({ isExpanded, onSectionChange }) => {
 };
 
 export default Sidebar;
-
-

@@ -4,33 +4,37 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, Title, Tool
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, Title, Tooltip, Legend);
 
-const VariacaoPercentualVolumeAbsoluto = ({ importData }) => {
+const VariacaoPercentualVolumeAbsoluto = ({ importData, selectedCountry, isIndividual }) => {
   const [data, setData] = useState(null);
   const chartRef = useRef(null);
 
   useEffect(() => {
     const processData = (importData) => {
-      let countryData = {};
+      let ufData = {};
       let scatterData = [];
 
       importData.forEach(item => {
         const year = parseInt(item.ano);
         const monthNumber = parseInt(item.mes);
         const volume = parseFloat(item.total_kg || 0);
+        const uf = item.estado;
+        const country = item.pais;
 
-        if (!isNaN(year) && !isNaN(monthNumber) && !isNaN(volume) && year === 2024) {
-          const country = item.pais;
-          
-          if (countryData.hasOwnProperty(country)) {
-            const previousVolume = countryData[country].lastVolume;
-            
-            if (previousVolume > 0) { // Evitar divisão por zero
-              const variacaoPercentual = ((volume - previousVolume) / previousVolume) * 100;
-              scatterData.push({ x: volume, y: variacaoPercentual, label: country });
+        if (isIndividual && country !== selectedCountry) return; // Filtra pelo país selecionado, se for visão individual
+
+        if (year === 2024) { // Considera apenas dados de 2024
+          if (!isNaN(year) && !isNaN(monthNumber) && !isNaN(volume)) {
+            if (ufData.hasOwnProperty(uf)) {
+              const previousVolume = ufData[uf].lastVolume;
+
+              if (previousVolume > 0) { // Evitar divisão por zero
+                const variacaoPercentual = ((volume - previousVolume) / previousVolume) * 100;
+                scatterData.push({ x: volume, y: variacaoPercentual, label: uf });
+              }
             }
-          }
 
-          countryData[country] = { lastVolume: volume };
+            ufData[uf] = { lastVolume: volume };
+          }
         }
       });
 
@@ -41,14 +45,14 @@ const VariacaoPercentualVolumeAbsoluto = ({ importData }) => {
 
     setData({
       datasets: [{
-        label: 'Variação Percentual x Volume Absoluto',
+        label: `Variação Percentual x Volume Absoluto por UF - ${selectedCountry || 'Geral'}`,
         data: scatterData,
-        backgroundColor: 'rgba(255, 99, 132, 0.5)',
-        borderColor: 'rgba(255, 99, 132, 1)',
+        backgroundColor: 'rgba(75, 192, 192, 0.5)',
+        borderColor: 'rgba(75, 192, 192, 1)',
         pointRadius: 3 // Reduzir o tamanho das bolinhas
       }]
     });
-  }, [importData]);
+  }, [importData, selectedCountry, isIndividual]);
 
   const options = {
     responsive: true,
@@ -84,14 +88,14 @@ const VariacaoPercentualVolumeAbsoluto = ({ importData }) => {
       clonedCanvas.width = canvas.width;
       clonedCanvas.height = canvas.height;
 
-      // Set background to white
+      // Define fundo branco
       clonedCtx.fillStyle = 'white';
       clonedCtx.fillRect(0, 0, clonedCanvas.width, clonedCanvas.height);
       clonedCtx.drawImage(canvas, 0, 0);
 
       const imageURL = clonedCanvas.toDataURL('image/png');
       const link = document.createElement('a');
-      link.download = 'VariacaoPercentualVolume.png';
+      link.download = `VariacaoPercentualVolumeAbsoluto_${selectedCountry || 'Geral'}.png`;
       link.href = imageURL;
       link.click();
     }
@@ -99,11 +103,11 @@ const VariacaoPercentualVolumeAbsoluto = ({ importData }) => {
 
   return (
     <div>
-      <h2>Análise de Variação Percentual e Volume Absoluto para 2024</h2>
+      <h2>{isIndividual ? `Análise de Variação Percentual e Volume Absoluto por UF - ${selectedCountry}` : 'Análise de Variação Percentual e Volume Absoluto por UF - Geral'}</h2>
       {data ? (
         <>
           <Scatter ref={chartRef} data={data} options={options} />
-          <button onClick={downloadChart}>Baixar Gráfico</button>
+          <button onClick={downloadChart} style={{ marginTop: '10px' }}>Baixar Gráfico</button>
         </>
       ) : <div>Carregando...</div>}
     </div>

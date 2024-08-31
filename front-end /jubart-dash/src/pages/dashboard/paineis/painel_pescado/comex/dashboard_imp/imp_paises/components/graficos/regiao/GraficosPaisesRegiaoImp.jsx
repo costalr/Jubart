@@ -2,7 +2,7 @@ import React from 'react';
 import DistribuicaoPreco from './components/DistribuicaoPreco';
 import DistribuicaoVolume from './components/DistribuicaoVolume';
 
-function GraficosRegiaoImp({ importData }) {
+function GraficosPaisesRegiaoImp({ importData, selectedCountry, isIndividual }) {
   const currentYear = new Date().getFullYear();
 
   return (
@@ -13,6 +13,8 @@ function GraficosRegiaoImp({ importData }) {
         startMonth={1} // Janeiro
         endMonth={12} // Dezembro
         importData={importData}
+        selectedCountry={selectedCountry}  // Passando selectedCountry
+        isIndividual={isIndividual}        // Passando isIndividual
       />
       <DistribuicaoVolume
         startYear={currentYear}
@@ -20,9 +22,11 @@ function GraficosRegiaoImp({ importData }) {
         startMonth={1} // Janeiro
         endMonth={12} // Dezembro
         importData={importData}
+        selectedCountry={selectedCountry}  // Passando selectedCountry
+        isIndividual={isIndividual}        // Passando isIndividual
       />
     </div>
   );
 }
 
-export default GraficosRegiaoImp;
+export default GraficosPaisesRegiaoImp;

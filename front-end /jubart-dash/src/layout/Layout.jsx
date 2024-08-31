@@ -12,6 +12,11 @@ function Layout({ children }) {
   // Estados para armazenar dados normalizados
   const [importData, setImportData] = useState({});
   const [exportData, setExportData] = useState({});
+  
+  const [selectedCountry, setSelectedCountry] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedState, setSelectedState] = useState(null);
+  const [selectedNcm, setSelectedNcm] = useState(null);
 
   // Função para alternar a barra lateral
   const toggleSidebar = () => {
@@ -20,6 +25,7 @@ function Layout({ children }) {
 
   // Função para alterar a seção selecionada
   const handleSectionChange = (section) => {
+    console.log(`Section changed to: ${section}`);
     setSelectedSection(section);
   };
 
@@ -27,6 +33,7 @@ function Layout({ children }) {
   useEffect(() => {
     const loadData = async () => {
       try {
+        console.log('Loading import and export data...');
         const importDataResult = await fetchImportData();
         const exportDataResult = await fetchExportData();
         setImportData(importDataResult);
@@ -38,7 +45,10 @@ function Layout({ children }) {
   
     loadData();
   }, []);
-  
+
+  useEffect(() => {
+  }, [selectedCountry, selectedCategory, selectedState, selectedNcm]);
+
   return (
     <div className="app-layout">
       <Navbar toggleSidebar={toggleSidebar} isSidebarExpanded={isSidebarExpanded} />
@@ -50,10 +60,22 @@ function Layout({ children }) {
           categories={importData.dataByCategory}
           ncm={importData.dataByNCM}
           states={importData.dataByState}
+          onCountryChange={setSelectedCountry}
+          onCategoryChange={setSelectedCategory}
+          onStateChange={setSelectedState}
+          onNcmChange={setSelectedNcm}
         />
         <div className={`content ${isSidebarExpanded ? 'content-expanded' : 'content-collapsed'}`}>
           <div className="main-content">
-            <Comex selectedSection={selectedSection} />
+            <Comex 
+              selectedSection={selectedSection}
+              importData={importData}
+              exportData={exportData}
+              selectedCountry={selectedCountry}
+              selectedCategory={selectedCategory}
+              selectedState={selectedState}
+              selectedNcm={selectedNcm}
+            />
             {children}
           </div>
         </div>

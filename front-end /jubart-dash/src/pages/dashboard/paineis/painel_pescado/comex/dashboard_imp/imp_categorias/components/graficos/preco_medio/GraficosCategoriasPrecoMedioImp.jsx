@@ -1,9 +1,26 @@
-import React from 'react'
+import React from 'react';
+import PrecoMedioCumulativo from './components/PrecoMedioCumulativo';
+import PrecoMedioMensal from './components/PrecoMedioMensal';
 
-function GraficosCategoriasPrecoMedioImp() {
+function GraficosCategoriasPrecoMedioImp({ startYear, endYear, startMonth, endMonth, importData }) {
   return (
-    <div>GraficosCategoriasPrecoMedioImp</div>
-  )
+    <div className="graficos-imp preco-medio">
+      <PrecoMedioCumulativo
+        startYear={startYear}
+        endYear={endYear}
+        startMonth={startMonth}
+        endMonth={endMonth}
+        importData={importData}
+      />
+      <PrecoMedioMensal
+        startYear={startYear}
+        endYear={endYear}
+        startMonth={startMonth}
+        endMonth={endMonth}
+        importData={importData}
+      />
+    </div>
+  );
 }
 
-export default GraficosCategoriasPrecoMedioImp
+export default GraficosCategoriasPrecoMedioImp;

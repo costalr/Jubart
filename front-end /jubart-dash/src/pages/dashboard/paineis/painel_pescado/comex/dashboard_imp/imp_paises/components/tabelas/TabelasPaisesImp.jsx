@@ -1,27 +1,27 @@
 import React from 'react';
-import './TabelasPaisesImp.css';
+import './TabelasPaisesImp.css'
 
-const TabelasPaisesImp = ({ importData }) => {
+const TabelasPaisesImp = ({ importData, selectedCountry }) => {
     const currentYear = new Date().getFullYear();
 
     const calculateTableData = () => {
-        const dataByCountry = {};
+        const dataByRegion = {};
 
         importData.forEach(item => {
             const year = parseInt(item.ano);
-            const country = item.pais;
+            const region = selectedCountry ? item.estado : item.pais;  // Agrupar por UF se um país for selecionado, caso contrário, por país
 
-            if (year === currentYear || year === currentYear - 1) {
-                if (!dataByCountry[country]) {
-                    dataByCountry[country] = { [currentYear]: { kg: 0, usd: 0 }, [currentYear - 1]: { kg: 0, usd: 0 } };
+            if ((year === currentYear || year === currentYear - 1) && (!selectedCountry || item.pais === selectedCountry)) {
+                if (!dataByRegion[region]) {
+                    dataByRegion[region] = { [currentYear]: { kg: 0, usd: 0 }, [currentYear - 1]: { kg: 0, usd: 0 } };
                 }
-                dataByCountry[country][year].kg += parseFloat(item.total_kg);
-                dataByCountry[country][year].usd += parseFloat(item.total_usd);
+                dataByRegion[region][year].kg += parseFloat(item.total_kg);
+                dataByRegion[region][year].usd += parseFloat(item.total_usd);
             }
         });
 
-        const tableData = Object.keys(dataByCountry).map(country => {
-            const data = dataByCountry[country];
+        const tableData = Object.keys(dataByRegion).map(region => {
+            const data = dataByRegion[region];
             const kgPreviousYear = data[currentYear - 1].kg;
             const usdPreviousYear = data[currentYear - 1].usd;
 
@@ -46,20 +46,19 @@ const TabelasPaisesImp = ({ importData }) => {
                 : '0';
 
             return {
-                country,
+                region,
                 [`${currentYear}-kg`]: data[currentYear].kg,
                 [`${currentYear - 1}-kg`]: kgPreviousYear,
-                'varKg%': varKg === '-100.00' ? '0' : varKg, // Converting -100% to 0
+                'varKg%': varKg === '-100.00' ? '0' : varKg,
                 [`${currentYear}-usd`]: data[currentYear].usd,
                 [`${currentYear - 1}-usd`]: usdPreviousYear,
-                'varUsd%': varUsd === '-100.00' ? '0' : varUsd, // Converting -100% to 0
-                [`${currentYear}-Preco`]: avgPriceCurrent !== '0' ? `$${avgPriceCurrent}` : '0',
-                [`${currentYear - 1}-Preco`]: avgPricePrevious !== '0' ? `$${avgPricePrevious}` : '0',
-                'varPrice%': varPrice === '-100.00' ? '0' : varPrice // Converting -100% to 0
+                'varUsd%': varUsd === '-100.00' ? '0' : varUsd,
+                [`${currentYear}-Preco`]: avgPriceCurrent !== '0' ? avgPriceCurrent : '0',
+                [`${currentYear - 1}-Preco`]: avgPricePrevious !== '0' ? avgPricePrevious : '0',
+                'varPrice%': varPrice === '-100.00' ? '0' : varPrice
             };
         });
 
-        // Ordenar os dados por kg em 2024 e depois por kg em 2023 em ordem decrescente
         return tableData.sort((a, b) => {
             if (b[`${currentYear}-kg`] !== a[`${currentYear}-kg`]) {
                 return b[`${currentYear}-kg`] - a[`${currentYear}-kg`];
@@ -68,15 +67,33 @@ const TabelasPaisesImp = ({ importData }) => {
         });
     };
 
+    const formatCurrency = (value) => {
+        return value.toLocaleString('pt-BR', { style: 'currency', currency: 'USD' });
+    };
+
+    const formatTonnes = (value) => {
+        return value.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + " kg";
+    };
+
+    const formatPercentage = (value) => {
+        return `${parseFloat(value).toFixed(2)}%`;
+    };
+
+    const formatPrice = (value) => {
+        return `$${parseFloat(value).toFixed(2)}`;
+    };
+
     const tableData = calculateTableData();
 
     return (
         <div className="table-container">
-            <h1 style={{ textAlign: 'center' }}>Tabela de Importações</h1>
+            <h1 style={{ textAlign: 'center' }}>
+                {selectedCountry ? `Tabela de Importações por UF - ${selectedCountry}` : 'Tabela de Importações por País'}
+            </h1>
             <table>
                 <thead>
                     <tr>
-                        <th>País</th>
+                        <th>{selectedCountry ? 'UF' : 'País'}</th>
                         <th>{currentYear}-kg</th>
                         <th>{currentYear - 1}-kg</th>
                         <th>Variação% kg</th>
@@ -91,16 +108,16 @@ const TabelasPaisesImp = ({ importData }) => {
                 <tbody>
                     {tableData.map((row, index) => (
                         <tr key={index}>
-                            <td>{row.country}</td>
-                            <td>{row[`${currentYear}-kg`].toLocaleString()}</td>
-                            <td>{row[`${currentYear - 1}-kg`].toLocaleString()}</td>
-                            <td>{row['varKg%']}%</td>
-                            <td>{row[`${currentYear}-usd`].toLocaleString()}</td>
-                            <td>{row[`${currentYear - 1}-usd`].toLocaleString()}</td>
-                            <td>{row['varUsd%']}%</td>
-                            <td>{row[`${currentYear}-Preco`]}</td>
-                            <td>{row[`${currentYear - 1}-Preco`]}</td>
-                            <td>{row['varPrice%']}%</td>
+                            <td>{row.region}</td>
+                            <td>{formatTonnes(row[`${currentYear}-kg`])}</td>
+                            <td>{formatTonnes(row[`${currentYear - 1}-kg`])}</td>
+                            <td>{formatPercentage(row['varKg%'])}</td>
+                            <td>{formatCurrency(row[`${currentYear}-usd`])}</td>
+                            <td>{formatCurrency(row[`${currentYear - 1}-usd`])}</td>
+                            <td>{formatPercentage(row['varUsd%'])}</td>
+                            <td>{formatPrice(row[`${currentYear}-Preco`])}</td>
+                            <td>{formatPrice(row[`${currentYear - 1}-Preco`])}</td>
+                            <td>{formatPercentage(row['varPrice%'])}</td>
                         </tr>
                     ))}
                 </tbody>

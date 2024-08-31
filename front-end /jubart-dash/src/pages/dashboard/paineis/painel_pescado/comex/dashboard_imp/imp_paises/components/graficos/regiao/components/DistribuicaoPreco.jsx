@@ -4,45 +4,58 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-const DistribuicaoPreco = ({ startYear, endYear, startMonth, endMonth, importData }) => {
+const DistribuicaoPreco = ({ startYear, endYear, startMonth, endMonth, importData, isIndividual = false, selectedCountry }) => {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [totalValue, setTotalValue] = useState(0);
-  const chartRef = useRef(null);  // Assegure-se que a ref está sendo usada
+  const chartRef = useRef(null);
 
   useEffect(() => {
     try {
-      const countryValues = {};
+      const values = {};
+
+      console.log("Selected Country:", selectedCountry);
+      console.log("Is Individual:", isIndividual);
+
       importData.forEach(item => {
-        // Converta os valores para números para garantir uma comparação correta
         const year = parseInt(item.ano, 10);
         const month = parseInt(item.mes, 10);
-      
+
         if (year >= startYear && year <= endYear && month >= startMonth && month <= endMonth) {
-          const country = item.pais;
-          const value = parseFloat(item.total_usd || 0);
-          countryValues[country] = (countryValues[country] || 0) + value;
+          if (isIndividual && item.pais === selectedCountry) {
+            const uf = item.estado || "Outros";
+            const value = parseFloat(item.total_usd || 0);
+            values[uf] = (values[uf] || 0) + value;
+            console.log(`Processing UF: ${uf} with value: ${value}`);
+          } else if (!isIndividual) {
+            const country = item.pais || "Outros";
+            const value = parseFloat(item.total_usd || 0);
+            values[country] = (values[country] || 0) + value;
+          }
         }
       });
-      
-  
-      const sortedCountries = Object.keys(countryValues).sort((a, b) => countryValues[b] - countryValues[a]);
-  
-      const topCountries = sortedCountries.slice(0, 5);
-  
-      const otherCountriesValue = sortedCountries.slice(5).reduce((acc, country) => acc + countryValues[country], 0);
-  
-      const total = Object.values(countryValues).reduce((acc, curr) => acc + curr, 0);
+
+      console.log("Values:", values);
+
+      const total = Object.values(values).reduce((acc, curr) => acc + curr, 0);
       setTotalValue(total);
-  
-      const labels = [...topCountries, 'Outros'];
-      const values = topCountries.map(country => countryValues[country]).concat(otherCountriesValue);
-  
-      const chartData = {
+
+      const sortedKeys = Object.keys(values).sort((a, b) => values[b] - values[a]);
+      const topKeys = sortedKeys.slice(0, 5);
+      const otherValue = sortedKeys.slice(5).reduce((acc, key) => acc + values[key], 0);
+
+      const labels = [...topKeys, 'Outros'];
+      const valueData = topKeys.map(key => values[key]).concat(otherValue);
+
+      console.log("Other Value:", otherValue);
+      console.log("Labels:", labels);
+      console.log("Value Data:", valueData);
+
+      setData({
         labels,
         datasets: [{
-          label: 'Distribuição por países em US$',
-          data: values,
+          label: isIndividual ? `Distribuição por UF em US$ - ${selectedCountry}` : 'Distribuição por países em US$',
+          data: valueData,
           backgroundColor: [
             'rgba(75, 192, 192, 0.6)', 'rgba(255, 99, 132, 0.6)',
             'rgba(54, 162, 235, 0.6)', 'rgba(255, 206, 86, 0.6)',
@@ -55,15 +68,12 @@ const DistribuicaoPreco = ({ startYear, endYear, startMonth, endMonth, importDat
           ],
           borderWidth: 1
         }]
-      };
-  
-      setData(chartData);
+      });
     } catch (err) {
       console.error('Erro ao processar os dados:', err);
       setError(err);
     }
-  }, [startYear, endYear, startMonth, endMonth, importData]);
-  
+  }, [startYear, endYear, startMonth, endMonth, importData, isIndividual, selectedCountry]);
 
   const downloadChart = () => {
     if (chartRef.current) {
@@ -106,7 +116,7 @@ const DistribuicaoPreco = ({ startYear, endYear, startMonth, endMonth, importDat
 
   return (
     <div style={{ width: '50%', margin: '0 auto' }}>
-      <h2>Distribuição por países em US$</h2>
+      <h2>{isIndividual ? `Distribuição por UF em US$ - ${selectedCountry}` : 'Distribuição por países em US$'}</h2>
       {data ? <Pie ref={chartRef} data={data} options={options} /> : <div>Carregando...</div>}
       <button onClick={downloadChart} style={{ marginTop: '10px' }}>Clique aqui para baixar o gráfico!</button>
     </div>

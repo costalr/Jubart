@@ -4,75 +4,82 @@ import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Toolti
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-const PrecoMedioCumulativo = ({ startYear, endYear, startMonth, endMonth, importData }) => {
+const PrecoMedioCumulativo = ({ importData, startYear, endYear, isIndividual = false }) => {
   const [data, setData] = useState(null);
-  const [error, setError] = useState(null);
   const chartRef = useRef(null);
 
   useEffect(() => {
     const loadData = () => {
-      try {
-        const filteredData = importData.filter(item =>
-          parseInt(item.ano) >= startYear &&
-          parseInt(item.ano) <= endYear &&
-          item.total_kg !== 'NaN' && 
-          item.total_usd !== 'NaN' &&
-          parseInt(item.mes) >= startMonth &&
-          parseInt(item.mes) <= endMonth
-        );
+      // Definir os anos de início e fim para a visualização individual (2010 a 2024)
+      const filterStartYear = isIndividual ? 2010 : startYear;
+      const filterEndYear = isIndividual ? 2024 : endYear;
 
-        const yearlyData = filteredData.reduce((acc, curr) => {
-          const year = curr.ano;
-          acc[year] = acc[year] || { totalVolume: 0, totalValue: 0 };
-          acc[year].totalVolume += parseFloat(curr.total_kg || 0);
-          acc[year].totalValue += parseFloat(curr.total_usd || 0);
-          return acc;
-        }, {});
 
-        const years = Object.keys(yearlyData).sort();
-        const volumes = years.map(year => yearlyData[year].totalVolume);
-        const values = years.map(year => yearlyData[year].totalValue);
-        const prices = years.map(year => (yearlyData[year].totalVolume ? yearlyData[year].totalValue / yearlyData[year].totalVolume : 0));
+      const filteredData = importData.filter(item =>
+        parseInt(item.ano) >= filterStartYear &&
+        parseInt(item.ano) <= filterEndYear &&
+        item.total_kg !== 'NaN' &&
+        item.total_usd !== 'NaN'
+      );
 
-        setData({
-          labels: years.map(year => year.toString()),
-          datasets: [
-            {
-              type: 'bar',
-              label: 'Kg',
-              data: volumes,
-              backgroundColor: 'rgba(75, 192, 192, 0.5)',
-              borderColor: 'rgba(75, 192, 192, 1)',
-              borderWidth: 1,
-              yAxisID: 'y',
-            },
-            {
-              type: 'bar',
-              label: 'US$',
-              data: values,
-              backgroundColor: 'rgba(255, 99, 132, 0.5)',
-              borderColor: 'rgba(255, 99, 132, 1)',
-              borderWidth: 1,
-              yAxisID: 'y1',
-            },
-            {
-              type: 'line',
-              label: 'Preço Médio',
-              data: prices,
-              borderColor: 'rgba(53, 162, 235, 1)',
-              yAxisID: 'y2',
-              pointRadius: 3,
-            }
-          ]
-        });
-      } catch (error) {
-        console.error('Erro ao carregar os dados:', error);
-        setError(error);
-      }
+
+      const yearlyData = filteredData.reduce((acc, curr) => {
+        const year = curr.ano;
+        if (!acc[year]) {
+          acc[year] = { totalVolume: 0, totalValue: 0 };
+        }
+        acc[year].totalVolume += parseFloat(curr.total_kg || 0);
+        acc[year].totalValue += parseFloat(curr.total_usd || 0);
+        return acc;
+      }, {});
+
+
+      // Garantir que os anos de 2010 a 2024 sejam exibidos mesmo que não haja dados
+      const years = isIndividual
+        ? Array.from({ length: 15 }, (_, i) => (2010 + i).toString())
+        : Object.keys(yearlyData).sort();
+
+      const volumes = years.map(year => yearlyData[year]?.totalVolume || 0);
+      const values = years.map(year => yearlyData[year]?.totalValue || 0);
+      const prices = years.map(year => (yearlyData[year]?.totalVolume ? yearlyData[year].totalValue / yearlyData[year].totalVolume : 0));
+
+
+
+      setData({
+        labels: years,
+        datasets: [
+          {
+            type: 'bar',
+            label: 'Kg',
+            data: volumes,
+            backgroundColor: 'rgba(75, 192, 192, 0.5)',
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 1,
+            yAxisID: 'y',
+          },
+          {
+            type: 'bar',
+            label: 'US$',
+            data: values,
+            backgroundColor: 'rgba(255, 99, 132, 0.5)',
+            borderColor: 'rgba(255, 99, 132, 1)',
+            borderWidth: 1,
+            yAxisID: 'y1',
+          },
+          {
+            type: 'line',
+            label: 'Preço Médio',
+            data: prices,
+            borderColor: 'rgba(53, 162, 235, 1)',
+            yAxisID: 'y2',
+            pointRadius: 3,
+          }
+        ]
+      });
     };
 
     loadData();
-  }, [startYear, endYear, startMonth, endMonth, importData]);
+  }, [startYear, endYear, importData, isIndividual]);
 
   const options = {
     responsive: true,
@@ -86,11 +93,6 @@ const PrecoMedioCumulativo = ({ startYear, endYear, startMonth, endMonth, import
           display: true,
           text: 'Ano'
         },
-        ticks: {
-          callback: function(val, index) {
-            return index % 2 === 0 ? this.getLabelForValue(val) : '';
-          }
-        }
       },
       y: {
         type: 'linear',
@@ -100,32 +102,18 @@ const PrecoMedioCumulativo = ({ startYear, endYear, startMonth, endMonth, import
           display: true,
           text: 'Valor (US$)'
         },
-        ticks: {
-          callback: (value) => {
-            if (value >= 1e9) {
-              return `${(value / 1e9).toFixed(1)}B`;
-            } else {
-              return '';
-            }
-          }
-        }
       },
       y1: {
         type: 'linear',
         display: true,
-        position: 'left',
+        position: 'right',
         title: {
-          display: false,
+          display: true,
+          text: 'Kg'
         },
-        ticks: {
-          callback: (value) => {
-            if (value >= 1e6) {
-              return `${(value / 1e9).toFixed(1)}B`;
-            } else {
-              return '';
-            }
-          }
-        }
+        grid: {
+          drawOnChartArea: false,
+        },
       },
       y2: {
         type: 'linear',
@@ -133,26 +121,16 @@ const PrecoMedioCumulativo = ({ startYear, endYear, startMonth, endMonth, import
         position: 'right',
         title: {
           display: true,
-          text: 'Preço Médio (US$/Kg)'
+          text: 'Preço Médio (US$/kg)'
         },
-        ticks: {
-          stepSize: 0.5,
-          suggestedMax: 5.5,
-        }
-      }
+        grid: {
+          drawOnChartArea: false,
+        },
+      },
     },
     plugins: {
       legend: {
-        position: 'right',
-        align: 'start',
-        title: {
-          display: true,
-          text: 'Variáveis',
-          color: 'grey'
-        },
-        labels: {
-          boxWidth: 20,
-        },
+        position: 'top',
       },
       tooltip: {
         callbacks: {
@@ -180,7 +158,7 @@ const PrecoMedioCumulativo = ({ startYear, endYear, startMonth, endMonth, import
       const clonedCtx = clonedCanvas.getContext('2d');
 
       clonedCanvas.width = canvas.width;
-      clonedCanvas.height = canvas.height + 50;
+      clonedCanvas.height = canvas.height + 50; // Adds space for the title
 
       clonedCtx.fillStyle = 'white';
       clonedCtx.fillRect(0, 0, clonedCanvas.width, clonedCanvas.height);
@@ -200,10 +178,6 @@ const PrecoMedioCumulativo = ({ startYear, endYear, startMonth, endMonth, import
       link.click();
     }
   };
-
-  if (error) {
-    return <div>Erro ao carregar dados</div>;
-  }
 
   return (
     <div>

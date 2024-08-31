@@ -2,7 +2,7 @@ import React from 'react';
 import PrecoMedioCumulativo from './components/PrecoMedioCumulativo';
 import PrecoMedioMensal from './components/PrecoMedioMensal';
 
-function GraficosPaisesPrecoMedioImp({ startYear, endYear, startMonth, endMonth, importData }) {
+function GraficosPaisesPrecoMedioImp({ startYear, endYear, startMonth, endMonth, importData, isIndividual = false }) {
   return (
     <div className="graficos-imp preco-medio">
       <PrecoMedioCumulativo
@@ -11,6 +11,7 @@ function GraficosPaisesPrecoMedioImp({ startYear, endYear, startMonth, endMonth,
         startMonth={startMonth}
         endMonth={endMonth}
         importData={importData}
+        isIndividual={isIndividual} 
       />
       <PrecoMedioMensal
         startYear={startYear}
@@ -18,6 +19,7 @@ function GraficosPaisesPrecoMedioImp({ startYear, endYear, startMonth, endMonth,
         startMonth={startMonth}
         endMonth={endMonth}
         importData={importData}
+        isIndividual={isIndividual} 
       />
     </div>
   );

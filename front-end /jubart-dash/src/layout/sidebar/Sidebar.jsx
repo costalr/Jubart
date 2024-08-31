@@ -3,7 +3,7 @@ import './Sidebar.css';
 import profilePic from '../../assets/images/profile.jpg';
 import Selectors from '../../components/selectors/Selectors';
 import { fetchImportData, fetchExportData } from '../../api/fetchApi';
-import { getGroupedItem } from '../../api/indexedDBGrouped';
+import { getGroupedItem, setGroupedItem } from '../../api/indexedDBGrouped';
 import { useNavigate } from 'react-router-dom';
 
 const Sidebar = ({ isExpanded, onSectionChange }) => {
@@ -12,6 +12,8 @@ const Sidebar = ({ isExpanded, onSectionChange }) => {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [selectedReportType, setSelectedReportType] = useState(null);
   const [specificReportRequest, setSpecificReportRequest] = useState(false);
+  const [selectedReportOption, setSelectedReportOption] = useState(null);
+  const [isReportOptionsVisible, setReportOptionsVisible] = useState(false);
 
   const [selectorData, setSelectorData] = useState({
     paises: null,
@@ -26,10 +28,8 @@ const Sidebar = ({ isExpanded, onSectionChange }) => {
 
   useEffect(() => {
     if (!dataLoadedRef.current) {
-      console.log("Fetching data...");
       const loadData = async () => {
         const [importData, exportData] = await Promise.all([fetchImportData(), fetchExportData()]);
-        console.log("Data fetched:", { importData, exportData });
 
         const paises = await getGroupedItem('paises') || extractUniqueValues(importData, 'pais');
         const categorias = await getGroupedItem('categorias') || extractUniqueValues(importData, 'categoria');
@@ -46,23 +46,31 @@ const Sidebar = ({ isExpanded, onSectionChange }) => {
 
   const extractUniqueValues = (data, group) => {
     if (!data || !data[`por_${group}`]) {
-        console.error(`No data found for group: ${group}`);
-        return [];
+      console.error(`No data found for group: ${group}`);
+      return [];
     }
 
-    if (group === 'ncm') {
-        return [...new Set(Object.values(data[`por_${group}`]).flat().map(item => item.coNcm))]
-            .map(coNcm => ({ value: coNcm, label: coNcm }))
-            .sort((a, b) => a.label.localeCompare(b.label));
-    }
+    const filteredOptions = Object.keys(data[`por_${group}`])
+      .filter(key => {
+        // Filtra os países com dados válidos (onde total_kg e total_usd são maiores que 0)
+        return data[`por_${group}`][key].some(item => parseFloat(item.total_kg) > 0 && parseFloat(item.total_usd) > 0);
+      })
+      .map(key => ({ value: key, label: key }))
+      .sort((a, b) => a.label.localeCompare(b.label));
 
-    return Object.keys(data[`por_${group}`])
-        .map(key => ({ value: key, label: key }))
-        .sort((a, b) => a.label.localeCompare(b.label));
+    return filteredOptions;
   };
 
   const setSelectedCountry = (country) => {
     setSelectorData(prevState => ({ ...prevState, selectedCountry: country }));
+
+    if (specificReportRequest && selectedReportOption) {
+        navigate(`/dashboard/importacao/paises/${country}/${selectedReportOption}`);
+    } else if (specificReportRequest) {
+        navigate(`/dashboard/importacao/paises/${country}/estados`);
+    } else {
+        navigate(`/dashboard/importacao/paises/${country}`);
+    }
   };
 
   const setSelectedCategory = (category) => {
@@ -83,24 +91,30 @@ const Sidebar = ({ isExpanded, onSectionChange }) => {
 
   const handleMenuClick = (menuName) => {
     setActiveMenu((prevActiveMenu) => (prevActiveMenu === menuName ? null : menuName));
-    setActiveSubMenu({});
+    setActiveSubMenu({}); 
   };
 
   const handleSubMenuClick = (menu, submenu) => {
-    console.log(`Toggling submenu for menu: ${menu}, submenu: ${submenu}`);
+    // Evita fechar o submenu ao clicar em opções específicas
+    if (menu === 'comex' && activeSubMenu[menu] === submenu) {
+      return;
+    }
+
     setActiveSubMenu((prevState) => ({
       ...prevState,
-      [menu]: prevState[menu] === submenu ? submenu : submenu,
+      [menu]: prevState[menu] === submenu ? null : submenu,
     }));
   };
 
   const handleReportTypeChange = (type) => {
-    console.log(`Report Type Changed: ${type}`);
     setSelectedReportType(type);
     setSpecificReportRequest(false);
+    setReportOptionsVisible(false); // Reseta a visibilidade das opções específicas
+
+    // Mantém o submenu "Comex" aberto enquanto o tipo de relatório é alterado
     setActiveSubMenu((prevState) => ({
       ...prevState,
-      comex: prevState['comex'],
+      comex: 'importacao' === type || 'exportacao' === type ? 'comex' : prevState.comex,
     }));
 
     // Navegação baseada no tipo de relatório selecionado
@@ -113,14 +127,42 @@ const Sidebar = ({ isExpanded, onSectionChange }) => {
     }
   };
 
-
-  const handleSpecificReportRequestChange = (value) => {
-    console.log(`Specific Report Request Changed: ${value}`);
+  const handleSpecificReportRequestChange = async (value) => {
     setSpecificReportRequest(value);
-    setActiveSubMenu((prevState) => ({
-      ...prevState,
-      comex: prevState['comex'],
-    }));
+    setReportOptionsVisible(value);
+
+    if (value && selectedReportType && selectorData[selectedReportType]?.length > 0) {
+        const firstItem = selectorData[selectedReportType][0]?.value;
+
+        if (firstItem) {
+            const subcategoryMap = {
+                paises: 'estados',
+                categorias: 'subcategoria',
+                especies: 'subespecie',
+                ncm: 'subncm'
+            };
+
+            const subcategory = subcategoryMap[selectedReportType];
+
+            if (subcategory) {
+                navigate(`/dashboard/importacao/${selectedReportType}/${firstItem}/${subcategory}`);
+            } else {
+                navigate(`/dashboard/importacao/${selectedReportType}/${firstItem}`);
+            }
+        }
+    }
+  };
+
+  const filteredReportOptions = ['paises', 'estados', 'categorias', 'especies', 'ncm'].filter(
+    (option) => option !== selectedReportType
+  );
+
+  const handleReportOptionChange = (option) => {
+    setSelectedReportOption(option);
+
+    if (specificReportRequest && selectorData.selectedCountry) {
+      navigate(`/dashboard/importacao/paises/${selectorData.selectedCountry}/${option}`);
+    }
   };
 
   const toggleProfileDropdown = () => {
@@ -156,11 +198,15 @@ const Sidebar = ({ isExpanded, onSectionChange }) => {
     navigate(routes[submenuType][reportType]);
   };
 
+  const handleHomeClick = () => {
+    navigate('/dashboard');
+  };
+
   return (
     <div className={`sidebar ${isExpanded ? 'expanded' : 'collapsed'}`}>
       <ul className="sidebar-menu">
         <li className="menu-item">
-          <div className="menu-item-content home-menu-item" onClick={() => onSectionChange('inicio')}>
+          <div className="menu-item-content home-menu-item" onClick={handleHomeClick}>
             <i className="bi bi-house-door menu-icon"></i>
             {isExpanded && <span>Início</span>}
           </div>
@@ -177,12 +223,12 @@ const Sidebar = ({ isExpanded, onSectionChange }) => {
                 e.stopPropagation();
                 handleSubMenuClick('paineis', 'comex');
               }}>
-                Comex
+                COMEX
                 {isExpanded && (
-                  <i className={`bi ${activeSubMenu['paineis'] === 'comex' ? 'bi-chevron-up' : 'bi-chevron-down'} arrow-icon`}></i>
+                  <i className={`bi ${activeSubMenu['paineis'] === 'COMEX' ? 'bi-chevron-up' : 'bi-chevron-down'} arrow-icon`}></i>
                 )}
                 {isExpanded && activeSubMenu['paineis'] === 'comex' && (
-                  <ul className="comex-submenu">
+                  <ul className={`comex-submenu ${isReportOptionsVisible ? 'expanded' : ''}`}>
                     <li className="comex-submenu-item" onClick={(e) => e.stopPropagation()}>
                       <label>
                         <input
@@ -250,8 +296,8 @@ const Sidebar = ({ isExpanded, onSectionChange }) => {
                                 </label>
                               </div>
                             )}
-                            {specificReportRequest && (
-                              <div className="selector-group">
+                            {isReportOptionsVisible && (
+                              <div className="specific-report-container">
                                 <Selectors
                                   selectedReportType={selectedReportType}
                                   onCountryChange={setSelectedCountry}
@@ -261,6 +307,25 @@ const Sidebar = ({ isExpanded, onSectionChange }) => {
                                   onStateChange={setSelectedState}
                                   selectorData={selectorData}
                                 />
+                                <div className="report-options">
+                                  <span className="relatory-container">Como você gostaria do seu relatório?</span>
+                                  <div className="report-options-container">
+                                    {filteredReportOptions.map((option) => (
+                                      <div key={option}>
+                                        <label>
+                                          <input
+                                            type="radio"
+                                            name="report_option"
+                                            value={option}
+                                            checked={selectedReportOption === option}
+                                            onChange={() => handleReportOptionChange(option)}
+                                          />
+                                          {option.charAt(0).toUpperCase() + option.slice(1)}
+                                        </label>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
                               </div>
                             )}
                           </ul>

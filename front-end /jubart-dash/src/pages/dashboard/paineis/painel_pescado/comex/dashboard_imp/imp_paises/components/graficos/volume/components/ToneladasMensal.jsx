@@ -4,22 +4,42 @@ import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Toolti
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-const ToneladasMensalImp = ({ importData }) => {
+const ToneladasMensalImp = ({ importData, isIndividual = false, startYear, endYear, startMonth, endMonth }) => {
   const [data, setData] = useState(null);
   const chartRef = useRef(null);
 
   useEffect(() => {
     const processData = () => {
-      const filteredData = importData.filter(d => parseInt(d.ano) >= 2021 && parseInt(d.ano) <= 2024);
+      const currentYear = new Date().getFullYear();
+      const filteredStartYear = isIndividual ? currentYear - 5 : startYear;
+      const filteredEndYear = isIndividual ? currentYear : endYear;
+
+      const filteredData = importData.filter(d => {
+        const ano = parseInt(d.ano);
+        return ano >= filteredStartYear && ano <= filteredEndYear;
+      });
+
       const structuredData = {};
 
+      // Inicializa com zeros para todos os meses de todos os anos no intervalo
+      for (let ano = filteredStartYear; ano <= filteredEndYear; ano++) {
+        structuredData[ano.toString()] = Array(12).fill(0);
+      }
+
+      // Acumula os valores por mês
       filteredData.forEach(item => {
         const year = item.ano.toString();
         const monthIndex = parseInt(item.mes) - 1;
-        if (!structuredData[year]) {
-          structuredData[year] = Array(12).fill(0);
-        }
         structuredData[year][monthIndex] += parseFloat(item.total_kg);
+      });
+
+      // Propaga o valor acumulado do mês anterior para os meses seguintes no ano corrente
+      Object.keys(structuredData).forEach(year => {
+        for (let i = 1; i < 12; i++) {
+          if (structuredData[year][i] === 0 && structuredData[year][i - 1] > 0) {
+            structuredData[year][i] = structuredData[year][i - 1];
+          }
+        }
       });
 
       const labels = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
@@ -38,7 +58,7 @@ const ToneladasMensalImp = ({ importData }) => {
     };
 
     processData();
-  }, [importData]);
+  }, [importData, isIndividual, startYear, endYear, startMonth, endMonth]);
 
   const downloadChart = () => {
     if (chartRef.current) {
@@ -47,7 +67,7 @@ const ToneladasMensalImp = ({ importData }) => {
       const clonedCtx = clonedCanvas.getContext('2d');
 
       clonedCanvas.width = canvas.width;
-      clonedCanvas.height = canvas.height + 50; // Adds space for the title
+      clonedCanvas.height = canvas.height + 50; // Adiciona espaço para o título
 
       clonedCtx.fillStyle = 'white';
       clonedCtx.fillRect(0, 0, clonedCanvas.width, clonedCanvas.height);
@@ -55,13 +75,17 @@ const ToneladasMensalImp = ({ importData }) => {
       clonedCtx.font = '16px Arial';
       clonedCtx.fillStyle = 'black';
       clonedCtx.textAlign = 'center';
-      clonedCtx.fillText('Histórico Mensal de Toneladas 2021 a 2024', clonedCanvas.width / 2, 30);
+      clonedCtx.fillText(
+        `Histórico Mensal de Toneladas ${isIndividual ? `${new Date().getFullYear() - 5} a ${new Date().getFullYear()}` : `${startYear} a ${endYear}`}`,
+        clonedCanvas.width / 2,
+        30
+      );
 
       clonedCtx.drawImage(canvas, 0, 50);
 
       const url = clonedCanvas.toDataURL('image/png');
       const link = document.createElement('a');
-      link.download = 'ToneladasMensais2021a2024.png';
+      link.download = `ToneladasMensais${isIndividual ? `${new Date().getFullYear() - 5}a${new Date().getFullYear()}` : `${startYear}a${endYear}`}.png`;
       link.href = url;
       link.click();
     }
@@ -69,10 +93,10 @@ const ToneladasMensalImp = ({ importData }) => {
 
   return (
     <div>
-      <h2>Histórico Mensal de Toneladas 2021 a 2024</h2>
+      <h2>Histórico Mensal de Toneladas {isIndividual ? `${new Date().getFullYear() - 5} a ${new Date().getFullYear()}` : `${startYear} a ${endYear}`}</h2>
       {data ? (
         <>
-<Bar ref={chartRef} data={data} options={{
+          <Bar ref={chartRef} data={data} options={{
             responsive: true,
             scales: {
               y: {

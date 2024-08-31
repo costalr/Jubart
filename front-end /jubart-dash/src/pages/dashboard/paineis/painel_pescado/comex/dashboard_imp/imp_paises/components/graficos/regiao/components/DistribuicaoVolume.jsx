@@ -4,7 +4,7 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-const DistribuicaoVolume = ({ importData }) => {
+const DistribuicaoVolume = ({ importData, isIndividual = false, selectedCountry }) => {
   const [data, setData] = useState(null);
   const [totalVolume, setTotalVolume] = useState(0);  // Estado para armazenar o volume total
   const [error, setError] = useState(null);
@@ -13,30 +13,46 @@ const DistribuicaoVolume = ({ importData }) => {
   useEffect(() => {
     const currentYear = new Date().getFullYear();
     try {
-      const countryVolumes = {};
+      const volumes = {};
+
+;
+
+      if (isIndividual && !selectedCountry) {
+        console.error("Selected country is undefined or null while in individual mode.");
+        return;
+      }
+
       importData.forEach(item => {
         if (parseInt(item.ano) === currentYear) {
-          const country = item.pais;
-          const volume = parseFloat(item.total_kg || 0);
-          countryVolumes[country] = (countryVolumes[country] || 0) + volume;
+          if (isIndividual && item.pais === selectedCountry) {
+            const uf = item.estado || "Outros";
+            const volume = parseFloat(item.total_kg || 0);
+            volumes[uf] = (volumes[uf] || 0) + volume;
+          } else if (!isIndividual) {
+            const country = item.pais || "Outros";
+            const volume = parseFloat(item.total_kg || 0);
+            volumes[country] = (volumes[country] || 0) + volume;
+          }
         }
       });
 
-      const total = Object.values(countryVolumes).reduce((acc, curr) => acc + curr, 0);
+
+      const total = Object.values(volumes).reduce((acc, curr) => acc + curr, 0);
       setTotalVolume(total); // Armazena o total para uso no tooltip
 
-      const sortedCountries = Object.keys(countryVolumes).sort((a, b) => countryVolumes[b] - countryVolumes[a]);
-      const topCountries = sortedCountries.slice(0, 5);
-      const otherCountriesVolume = sortedCountries.slice(5).reduce((acc, country) => acc + countryVolumes[country], 0);
+      const sortedKeys = Object.keys(volumes).sort((a, b) => volumes[b] - volumes[a]);
+      const topKeys = sortedKeys.slice(0, 5);
+      const otherVolume = sortedKeys.slice(5).reduce((acc, key) => acc + volumes[key], 0);
 
-      const labels = [...topCountries, 'Outros'];
-      const volumes = topCountries.map(country => countryVolumes[country]).concat(otherCountriesVolume);
+      const labels = [...topKeys, 'Outros'];
+      const volumeData = topKeys.map(key => volumes[key]).concat(otherVolume);
 
+    
       setData({
         labels,
         datasets: [{
-          label: 'Distribuição por países em Kg',
-          data: volumes,
+          label: isIndividual ? `Distribuição por UF em Kg - ${selectedCountry}` : 'Distribuição por países em Kg',
+          data: volumeData,
           backgroundColor: [
             'rgba(75, 192, 192, 0.6)', 'rgba(255, 99, 132, 0.6)',
             'rgba(54, 162, 235, 0.6)', 'rgba(255, 206, 86, 0.6)',
@@ -54,7 +70,7 @@ const DistribuicaoVolume = ({ importData }) => {
       console.error('Erro ao processar os dados:', err);
       setError(err);
     }
-  }, [importData]);
+  }, [importData, isIndividual, selectedCountry]);
 
   const downloadChart = () => {
     if (chartRef.current) {
@@ -97,7 +113,7 @@ const DistribuicaoVolume = ({ importData }) => {
 
   return (
     <div style={{ width: '50%', margin: '0 auto' }}>
-      <h2>Distribuição por países em Kg</h2>
+      <h2>{isIndividual ? `Distribuição por UF em Kg - ${selectedCountry}` : 'Distribuição por países em Kg'}</h2>
       {data ? <Pie ref={chartRef} data={data} options={options} /> : <div>Carregando...</div>}
       <button onClick={downloadChart} style={{ marginTop: '10px' }}>Clique aqui para baixar o gráfico!</button>
     </div>

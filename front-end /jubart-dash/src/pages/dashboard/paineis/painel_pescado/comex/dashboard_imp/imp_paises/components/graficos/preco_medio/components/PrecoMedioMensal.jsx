@@ -4,58 +4,57 @@ import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, PointElement,
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend);
 
-const PrecoMedioMensal = ({ startYear, endYear, startMonth, endMonth, importData }) => {
+const PrecoMedioMensal = ({ startYear, endYear, startMonth, endMonth, importData, isIndividual = false }) => {
   const [data, setData] = useState(null);
-  const [viewMode, setViewMode] = useState('annual'); // 'annual', 'monthly', or 'lastSixYears'
-  const [selectedYear, setSelectedYear] = useState(null);
   const chartRef = useRef(null);
 
   useEffect(() => {
     if (!importData) return;
 
+    const currentYear = new Date().getFullYear();
+    const adjustedStartYear = isIndividual ? currentYear - 5 : startYear;
+    const adjustedEndYear = isIndividual ? currentYear : endYear;
+
     const processData = importData.reduce((acc, item) => {
-      if (parseInt(item.ano) >= startYear && parseInt(item.ano) <= endYear &&
-          parseInt(item.mes) >= startMonth && parseInt(item.mes) <= endMonth) {
-        const yearMonth = `${item.ano}-${item.mes.toString().padStart(2, '0')}`;
-        const year = item.ano.toString();
-        acc[year] = acc[year] || { totalVolume: 0, totalValue: 0, months: {} };
-        acc[year].totalVolume += parseFloat(item.total_kg) || 0;
-        acc[year].totalValue += parseFloat(item.total_usd) || 0;
-        acc[year].months[yearMonth] = acc[year].months[yearMonth] || { totalVolume: 0, totalValue: 0 };
-        acc[year].months[yearMonth].totalVolume += parseFloat(item.total_kg) || 0;
-        acc[year].months[yearMonth].totalValue += parseFloat(item.total_usd) || 0;
+      const ano = parseInt(item.ano);
+      const mes = parseInt(item.mes);
+
+      if (ano >= adjustedStartYear && ano <= adjustedEndYear) {
+        const yearMonth = `${ano}-${mes.toString().padStart(2, '0')}`;
+        if (!acc[yearMonth]) {
+          acc[yearMonth] = { totalVolume: 0, totalValue: 0 };
+        }
+        acc[yearMonth].totalVolume += item.total_kg ? parseFloat(item.total_kg) : 0;
+        acc[yearMonth].totalValue += item.total_usd ? parseFloat(item.total_usd) : 0;
       }
+
       return acc;
     }, {});
 
-    const lastSixYears = Object.keys(processData).sort().slice(-6);
+    const lastSixYears = Array.from({ length: 6 }, (_, i) => currentYear - i).reverse();
 
-    if (viewMode === 'annual') {
-      const years = Object.keys(processData).sort();
-      setData(createChartData(years, processData));
-      setSelectedYear(null);
-    } else if (viewMode === 'monthly' && selectedYear) {
-      const months = Object.keys(processData[selectedYear].months).sort();
-      setData(createChartData(months, processData[selectedYear].months));
-    } else if (viewMode === 'lastSixYears') {
-      const monthlyData = {};
-      lastSixYears.forEach(year => {
-        Object.keys(processData[year].months).forEach(month => {
-          monthlyData[month] = processData[year].months[month];
-        });
-      });
-      const months = Object.keys(monthlyData).sort();
-      setData(createChartData(months, monthlyData));
-    }
-  }, [importData, viewMode, selectedYear, startYear, endYear, startMonth, endMonth]);
+    const meses = [];
+    lastSixYears.forEach(ano => {
+      for (let mes = 1; mes <= 12; mes++) {
+        meses.push(`${ano}-${mes.toString().padStart(2, '0')}`);
+      }
+    });
+
+    setData(createChartData(meses, processData));
+  }, [importData, startYear, endYear, startMonth, endMonth, isIndividual]);
 
   const createChartData = (periods, data) => {
-    const volumes = periods.map(period => data[period].totalVolume);
-    const values = periods.map(period => data[period].totalValue);
-    const averagePrices = periods.map(period => data[period].totalVolume > 0 ? data[period].totalValue / data[period].totalVolume : 0);
+    const volumes = periods.map(period => data[period]?.totalVolume || 0);
+    const values = periods.map(period => data[period]?.totalValue || 0);
+    const averagePrices = periods.map(period =>
+      data[period]?.totalVolume > 0 ? data[period].totalValue / data[period].totalVolume : 0
+    );
 
     return {
-      labels: periods,
+      labels: periods.map(period => {
+        const [ano, mes] = period.split('-');
+        return `${mes}/${ano}`;
+      }),
       datasets: [
         {
           type: 'bar',
@@ -90,27 +89,6 @@ const PrecoMedioMensal = ({ startYear, endYear, startMonth, endMonth, importData
     };
   };
 
-  const handleChartClick = (event, elements) => {
-    if (elements.length > 0) {
-      const index = elements[0].index;
-      const label = data.labels[index];
-      if (viewMode === 'annual') {
-        setSelectedYear(label);
-        setViewMode('monthly');
-      } else {
-        setViewMode('annual');
-      }
-    }
-  };
-
-  const handleViewChange = () => {
-    if (viewMode === 'lastSixYears') {
-      setViewMode('annual');
-    } else {
-      setViewMode('lastSixYears');
-    }
-  };
-
   const downloadChart = () => {
     if (chartRef.current) {
       const canvas = chartRef.current.canvas;
@@ -126,17 +104,13 @@ const PrecoMedioMensal = ({ startYear, endYear, startMonth, endMonth, importData
       clonedCtx.font = '16px Arial';
       clonedCtx.fillStyle = 'black';
       clonedCtx.textAlign = 'center';
-      clonedCtx.fillText(
-        viewMode === 'annual' ? 'Histórico Anual de Preços Médios' : `Histórico Mensal de Preços Médios para o Ano de ${selectedYear}`,
-        clonedCanvas.width / 2,
-        30
-      );
+      clonedCtx.fillText('Histórico Mensal dos Últimos 6 Anos', clonedCanvas.width / 2, 30);
 
       clonedCtx.drawImage(canvas, 0, 50);
 
       const url = clonedCanvas.toDataURL('image/png');
       const link = document.createElement('a');
-      link.download = 'PrecoMedioMensal.png';
+      link.download = 'PrecoMedioMensal_Ultimos6Anos.png';
       link.href = url;
       link.click();
     }
@@ -144,67 +118,65 @@ const PrecoMedioMensal = ({ startYear, endYear, startMonth, endMonth, importData
 
   return (
     <div>
-      <h2>{viewMode === 'annual' ? 'Histórico Anual de Preços Médios' : (viewMode === 'lastSixYears' ? 'Histórico Mensal dos Últimos 6 Anos' : `Histórico Mensal de Preços Médios para o Ano de ${selectedYear}`)}</h2>
+      <h2>Histórico Mês a Mês</h2>
       {data ? (
-        <Bar
-          ref={chartRef}
-          data={data}
-          options={{
-            responsive: true,
-            scales: {
-              y: {
-                type: 'linear',
-                display: true,
-                position: 'left',
-                title: {
+        <>
+          <Bar
+            ref={chartRef}
+            data={data}
+            options={{
+              responsive: true,
+              scales: {
+                y: {
+                  type: 'linear',
                   display: true,
-                  text: 'Volume (Kg)',
+                  position: 'left',
+                  title: {
+                    display: true,
+                    text: 'Volume (Kg)',
+                  },
                 },
-              },
-              y1: {
-                type: 'linear',
-                display: true,
-                position: 'right',
-                title: {
+                y1: {
+                  type: 'linear',
                   display: true,
-                  text: 'Valor (US$)',
+                  position: 'right',
+                  title: {
+                    display: true,
+                    text: 'Valor (US$)',
+                  },
+                  grid: {
+                    drawOnChartArea: false,
+                  },
                 },
-                grid: {
-                  drawOnChartArea: false,
-                },
-              },
-              y2: {
-                type: 'linear',
-                display: true,
-                position: 'right',
-                title: {
+                y2: {
+                  type: 'linear',
                   display: true,
-                  text: 'Preço Médio (US$/kg)',
+                  position: 'right',
+                  title: {
+                    display: true,
+                    text: 'Preço Médio (US$/kg)',
+                  },
+                  grid: {
+                    drawOnChartArea: false,
+                  },
                 },
-                grid: {
-                  drawOnChartArea: false,
+              },
+              plugins: {
+                legend: {
+                  position: 'top',
+                },
+                tooltip: {
+                  mode: 'index',
+                  intersect: false,
                 },
               },
-            },
-            plugins: {
-              legend: {
-                position: 'top',
-              },
-              tooltip: {
-                mode: 'index',
-                intersect: false,
-              },
-            },
-            onClick: handleChartClick,
-          }}
-        />
+            }}
+          />
+          <button onClick={downloadChart} style={{ marginTop: '10px' }}>Download do Gráfico</button>
+        </>
       ) : (
         <div>Carregando dados...</div>
       )}
-      <div style={{ display: 'flex', justifyContent: 'space-evenly', marginTop: '10px', marginBottom: '20px' }}>
-        <button onClick={handleViewChange}>{viewMode === 'lastSixYears' ? 'Voltar para Visualização Anual' : 'Visualizar Últimos 6 Anos Mês a Mês'}</button>
-        <button onClick={downloadChart}>Download do Gráfico</button>
-      </div>
     </div>
   );
 };

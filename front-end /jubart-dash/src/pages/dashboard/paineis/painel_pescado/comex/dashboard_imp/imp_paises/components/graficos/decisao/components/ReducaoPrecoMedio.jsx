@@ -4,80 +4,114 @@ import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Toolti
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-const ReducaoPrecoMedio = ({ importData, startYear, endYear, startMonth, endMonth }) => {
+const ReducaoPrecoMedio = ({ importData, startYear, endYear, startMonth, endMonth, selectedCountry, isIndividual }) => {
   const [chartData, setChartData] = useState(null);
   const chartRef = useRef(null);
 
   useEffect(() => {
     const processData = () => {
-      let statsByCountry = {};
+      let statsByUF = {};
 
       importData.forEach(item => {
+        if (isIndividual && item.pais !== selectedCountry) return; // Filtra pelo país selecionado, se for visão individual
+
         const year = parseInt(item.ano);
         const month = parseInt(item.mes);
+        const uf = item.estado || 'Outros';
 
-        if (year >= startYear && year <= endYear && month >= startMonth && month <= endMonth) {
-          const key = `${item.pais}-${year}-${month}`;
-          if (!statsByCountry[key]) {
-            statsByCountry[key] = { totalFOB: 0, totalKG: 0, count: 0 };
-          }
-          statsByCountry[key].totalFOB += parseFloat(item.total_usd);
-          statsByCountry[key].totalKG += parseFloat(item.total_kg);
-          statsByCountry[key].count += 1;
-        }
-      });
+        if (year >= startYear - 1 && year <= endYear && month >= startMonth && month <= endMonth) {
+          const totalFOB = parseFloat(item.total_usd);
+          const totalKG = parseFloat(item.total_kg);
 
-      let priceChanges = [];
-      Object.keys(statsByCountry).forEach(key => {
-        const [country] = key.split('-');
-        const { totalFOB, totalKG } = statsByCountry[key];
-        const avgPrice = totalKG > 0 ? totalFOB / totalKG : 0;
-
-        if (priceChanges[country]) {
-          const lastData = priceChanges[country].pop();
-          const lastAvgPrice = lastData.avgPrice;
-
-          if (lastAvgPrice > 0) {
-            const percentChange = ((lastAvgPrice - avgPrice) / lastAvgPrice) * 100;
-
-            if (!isNaN(percentChange) && percentChange !== Infinity && percentChange !== -Infinity) {
-              priceChanges[country].push({ avgPrice, percentChange });
-            }
+          if (!statsByUF[uf]) {
+            statsByUF[uf] = {};
           }
 
-          priceChanges[country].push(lastData);
-        } else {
-          priceChanges[country] = [{ avgPrice, percentChange: 0 }];
+          if (!statsByUF[uf][year]) {
+            statsByUF[uf][year] = {};
+          }
+
+          if (!statsByUF[uf][year][month]) {
+            statsByUF[uf][year][month] = { totalFOB: 0, totalKG: 0 };
+          }
+
+          statsByUF[uf][year][month].totalFOB += totalFOB;
+          statsByUF[uf][year][month].totalKG += totalKG;
         }
       });
 
-      let finalData = [];
-      Object.keys(priceChanges).forEach(country => {
-        let maxChange = priceChanges[country].reduce(
-          (max, item) => (item.percentChange < max.percentChange ? item : max),
-          { percentChange: Infinity }
-        );
-        if (maxChange.percentChange < 0 && maxChange.percentChange !== Infinity) {
-          finalData.push({ country, percentChange: Math.abs(maxChange.percentChange) });
-        }
+      let priceChanges = {};
+
+      Object.keys(statsByUF).forEach(uf => {
+        Object.keys(statsByUF[uf]).forEach(year => {
+          year = parseInt(year);
+          const nextYear = year + 1;
+
+          if (statsByUF[uf][nextYear]) {
+            Object.keys(statsByUF[uf][year]).forEach(month => {
+              if (statsByUF[uf][nextYear][month]) {
+                const currentAvgPrice = statsByUF[uf][nextYear][month].totalKG > 0 
+                  ? statsByUF[uf][nextYear][month].totalFOB / statsByUF[uf][nextYear][month].totalKG 
+                  : 0;
+                const previousAvgPrice = statsByUF[uf][year][month].totalKG > 0 
+                  ? statsByUF[uf][year][month].totalFOB / statsByUF[uf][year][month].totalKG 
+                  : 0;
+
+                if (previousAvgPrice > 0) {
+                  const percentChange = ((previousAvgPrice - currentAvgPrice) / previousAvgPrice) * 100;
+
+                  if (!isNaN(percentChange) && percentChange < 0) { // Apenas considerar reduções
+                    priceChanges[uf] = Math.abs(percentChange); // Armazena a redução como número positivo
+                  }
+                }
+              }
+            });
+          }
+        });
       });
 
-      finalData.sort((a, b) => b.percentChange - a.percentChange);
-      return finalData.slice(0, 10);
+      const sortedData = Object.entries(priceChanges)
+        .map(([uf, percentChange]) => ({ uf, percentChange }))
+        .sort((a, b) => b.percentChange - a.percentChange);
+
+      return sortedData.slice(0, 10); // Limitar às 10 maiores reduções
     };
 
     const finalData = processData();
+
     setChartData({
-      labels: finalData.map(v => v.country),
+      labels: finalData.map(data => data.uf),
       datasets: [{
         label: 'Redução %PM',
-        data: finalData.map(v => v.percentChange),
+        data: finalData.map(data => data.percentChange),
         backgroundColor: 'rgba(255, 99, 132, 0.5)',
         borderColor: 'rgba(255, 99, 132, 1)',
         borderWidth: 1
       }]
     });
-  }, [importData, startYear, endYear, startMonth, endMonth]);
+  }, [importData, startYear, endYear, startMonth, endMonth, selectedCountry, isIndividual]);
+
+  const downloadChart = () => {
+    if (chartRef.current) {
+      const canvas = chartRef.current.canvas;
+      const clonedCanvas = document.createElement('canvas');
+      const clonedCtx = clonedCanvas.getContext('2d');
+
+      clonedCanvas.width = canvas.width;
+      clonedCanvas.height = canvas.height;
+
+      // Definir fundo branco
+      clonedCtx.fillStyle = 'white';
+      clonedCtx.fillRect(0, 0, clonedCanvas.width, clonedCanvas.height);
+      clonedCtx.drawImage(canvas, 0, 0);
+
+      const imageURL = clonedCanvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `ReducaoPrecoMedio_${selectedCountry || 'Geral'}.png`;
+      link.href = imageURL;
+      link.click();
+    }
+  };
 
   const options = {
     responsive: true,
@@ -98,7 +132,7 @@ const ReducaoPrecoMedio = ({ importData, startYear, endYear, startMonth, endMont
       x: {
         title: {
           display: true,
-          text: 'Países'
+          text: 'UFs'
         }
       },
       y: {
@@ -117,8 +151,15 @@ const ReducaoPrecoMedio = ({ importData, startYear, endYear, startMonth, endMont
 
   return (
     <div>
-      <h2>Maiores reduções do preço médio</h2>
-      {chartData ? <Bar ref={chartRef} data={chartData} options={options} /> : <div>Carregando...</div>}
+      <h2>{isIndividual ? `Maiores Reduções do Preço Médio por UF - ${selectedCountry}` : 'Maiores Reduções do Preço Médio por UF - Geral'}</h2>
+      {chartData ? (
+        <>
+          <Bar ref={chartRef} data={chartData} options={options} />
+          <button onClick={downloadChart} style={{ marginTop: '10px' }}>Baixar Gráfico</button>
+        </>
+      ) : (
+        <div>Carregando...</div>
+      )}
     </div>
   );
 };

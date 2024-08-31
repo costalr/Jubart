@@ -6,16 +6,16 @@ const CardsNCMImp = ({ importData, referenceMonth, referenceYear }) => {
 
     // Calcula as métricas de importação baseadas no ano e mês de referência
     const calculateMetrics = (data, year, month) => {
-        const filterDataForYear = data.filter(d => parseInt(d.year) === year && d.metricKG !== 'none' && d.metricFOB !== 'none');
-        const currentYearData = filterDataForYear.filter(d => parseInt(d.monthNumber) <= month);
-        const previousYearData = data.filter(d => parseInt(d.year) === year - 1 && parseInt(d.monthNumber) <= month && d.metricKG !== 'none' && d.metricFOB !== 'none');
+        const filterDataForYear = data.filter(d => parseInt(d.ano) === year && d.total_kg !== 'none' && d.total_usd !== 'none');
+        const currentYearData = filterDataForYear.filter(d => parseInt(d.mes) <= month);
+        const previousYearData = data.filter(d => parseInt(d.ano) === year - 1 && parseInt(d.mes) <= month && d.total_kg !== 'none' && d.total_usd !== 'none');
 
         const sumMetrics = (data, metric) => data.reduce((sum, item) => sum + parseFloat(item[metric]), 0);
 
-        const currentVolume = sumMetrics(currentYearData, 'metricKG');
-        const previousVolume = sumMetrics(previousYearData, 'metricKG');
-        const currentRevenue = sumMetrics(currentYearData, 'metricFOB');
-        const previousRevenue = sumMetrics(previousYearData, 'metricFOB');
+        const currentVolume = sumMetrics(currentYearData, 'total_kg');
+        const previousVolume = sumMetrics(previousYearData, 'total_kg');
+        const currentRevenue = sumMetrics(currentYearData, 'total_usd');
+        const previousRevenue = sumMetrics(previousYearData, 'total_usd');
 
         const volumeChange = previousVolume ? ((currentVolume - previousVolume) / previousVolume * 100).toFixed(2) : 'N/A';
         const revenueChange = previousRevenue ? ((currentRevenue - previousRevenue) / previousRevenue * 100).toFixed(2) : 'N/A';
@@ -25,7 +25,7 @@ const CardsNCMImp = ({ importData, referenceMonth, referenceYear }) => {
         const averagePriceChange = previousAveragePrice ? (((currentAveragePrice - previousAveragePrice) / previousAveragePrice) * 100).toFixed(2) : 'N/A';
 
         return {
-            volume: currentVolume.toLocaleString('pt-BR'),
+            volume: (currentVolume / 1000).toLocaleString('pt-BR'), // Convertendo para toneladas
             revenue: currentRevenue.toLocaleString('pt-BR'),
             averagePrice: currentAveragePrice,
             volumeChange,

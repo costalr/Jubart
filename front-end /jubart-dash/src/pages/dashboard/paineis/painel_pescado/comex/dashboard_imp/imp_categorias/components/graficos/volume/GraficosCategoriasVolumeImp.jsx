@@ -1,9 +1,26 @@
-import React from 'react'
+import React from 'react';
+import ToneladasCumulativas from './components/ToneladasCumulativo';
+import ToneladasMensal from './components/ToneladasMensal';
 
-function GraficosCategoriasVolumeImp() {
+function GraficosCategoriasVolumeImp({ startYear, endYear, startMonth, endMonth, importData }) {
   return (
-    <div>GraficosCategoriasVolumeImp</div>
-  )
+    <div className="graficos-paises-imp volume">
+      <ToneladasCumulativas
+        startYear={startYear}
+        endYear={endYear}
+        startMonth={startMonth}
+        endMonth={endMonth}
+        importData={importData}
+      />
+      <ToneladasMensal
+        startYear={startYear}
+        endYear={endYear}
+        startMonth={startMonth}
+        endMonth={endMonth}
+        importData={importData}
+      />
+    </div>
+  );
 }
 
-export default GraficosCategoriasVolumeImp
+export default GraficosCategoriasVolumeImp;

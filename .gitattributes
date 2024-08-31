@@ -1,0 +1,2 @@
+back-end/jubartDash-back/data/dados_exportacao_agrupados.json filter=lfs diff=lfs merge=lfs -text
+back-end/jubartDash-back/debug.log filter=lfs diff=lfs merge=lfs -text

@@ -7,6 +7,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, Title, Tooltip, Legen
 const VariacaoPercentualVolumeAbsoluto = ({ importData, selectedCountry, isIndividual }) => {
   const [data, setData] = useState(null);
   const chartRef = useRef(null);
+  const [isExpanded, setIsExpanded] = useState(false); // Estado para controlar a expansão
 
   useEffect(() => {
     const processData = (importData) => {
@@ -102,12 +103,17 @@ const VariacaoPercentualVolumeAbsoluto = ({ importData, selectedCountry, isIndiv
   };
 
   return (
-    <div>
+    <div className={`grafico ${isExpanded ? 'expanded' : ''}`}> {/* Classe condicional para controlar a expansão */}
       <h2>{isIndividual ? `Análise de Variação Percentual e Volume Absoluto por UF - ${selectedCountry}` : 'Análise de Variação Percentual e Volume Absoluto por UF - Geral'}</h2>
       {data ? (
         <>
           <Scatter ref={chartRef} data={data} options={options} />
-          <button onClick={downloadChart} style={{ marginTop: '10px' }}>Baixar Gráfico</button>
+          <div className="grafico-buttons">
+            <button onClick={downloadChart} style={{ marginTop: '10px' }}>Baixar Gráfico</button>
+            <button onClick={() => setIsExpanded(!isExpanded)} style={{ marginTop: '10px' }}>
+              {isExpanded ? 'Fechar' : 'Expandir'}
+            </button>
+          </div>
         </>
       ) : <div>Carregando...</div>}
     </div>

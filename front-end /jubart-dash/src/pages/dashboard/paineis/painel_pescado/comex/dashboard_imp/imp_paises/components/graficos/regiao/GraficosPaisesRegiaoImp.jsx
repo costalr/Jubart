@@ -6,25 +6,31 @@ function GraficosPaisesRegiaoImp({ importData, selectedCountry, isIndividual }) 
   const currentYear = new Date().getFullYear();
 
   return (
-    <div className="graficos-paises-imp regiao">
-      <DistribuicaoPreco
-        startYear={currentYear}
-        endYear={currentYear}
-        startMonth={1} // Janeiro
-        endMonth={12} // Dezembro
-        importData={importData}
-        selectedCountry={selectedCountry}  // Passando selectedCountry
-        isIndividual={isIndividual}        // Passando isIndividual
-      />
-      <DistribuicaoVolume
-        startYear={currentYear}
-        endYear={currentYear}
-        startMonth={1} // Janeiro
-        endMonth={12} // Dezembro
-        importData={importData}
-        selectedCountry={selectedCountry}  // Passando selectedCountry
-        isIndividual={isIndividual}        // Passando isIndividual
-      />
+    <div className="graficos-container">
+      {/* Gráfico de Distribuição por Preço */}
+      <div className="grafico-pizza">
+        <DistribuicaoPreco
+          startYear={currentYear}
+          endYear={currentYear}
+          startMonth={1}
+          endMonth={12}
+          importData={importData}
+          selectedCountry={selectedCountry}
+          isIndividual={isIndividual}
+        />
+      </div>
+      {/* Gráfico de Distribuição por Volume */}
+      <div className="grafico-pizza">
+        <DistribuicaoVolume
+          startYear={currentYear}
+          endYear={currentYear}
+          startMonth={1}
+          endMonth={12}
+          importData={importData}
+          selectedCountry={selectedCountry}
+          isIndividual={isIndividual}
+        />
+      </div>
     </div>
   );
 }

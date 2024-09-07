@@ -3,6 +3,7 @@ import GraficosPrecoMedioImp from './preco_medio/GraficosPaisesPrecoMedioImp';
 import GraficosVolumeImp from './volume/GraficosPaisesVolumeImp';
 import GraficosRegiaoImp from './regiao/GraficosPaisesRegiaoImp';
 import GraficosDecisaoImp from './decisao/GraficosPaisesDecisaoImp';
+import '../../../../shared/Graficos.css'; // Importando o CSS global
 
 const minYear = 1997;
 const maxYear = new Date().getFullYear();
@@ -22,7 +23,7 @@ const monthOptions = [
   { value: '12', label: 'Dezembro' }
 ];
 
-function GraficosPaisesImp({ importData, referenceMonth, referenceYear, isIndividual, selectedCountry }) {  // Adicionado selectedCountry
+function GraficosPaisesImp({ importData, referenceMonth, referenceYear, isIndividual, selectedCountry }) {
   const [selectedStartYear, setSelectedStartYear] = useState(isIndividual ? 2019 : referenceYear || 2010);
   const [selectedEndYear, setSelectedEndYear] = useState(isIndividual ? 2024 : referenceYear || maxYear);
   const [selectedStartMonth, setSelectedStartMonth] = useState(referenceMonth ? String(referenceMonth).padStart(2, '0') : '01');
@@ -86,43 +87,47 @@ function GraficosPaisesImp({ importData, referenceMonth, referenceYear, isIndivi
           </div>
         </div>
       )}
-      <div className="chart-container">
-        <GraficosPrecoMedioImp
-          startYear={selectedStartYear}
-          endYear={selectedEndYear}
-          startMonth={parseInt(selectedStartMonth)}
-          endMonth={parseInt(selectedEndMonth)}
-          importData={importData}
-          isIndividual={isIndividual}
-          selectedCountry={selectedCountry}  // Passando selectedCountry
-        />
-        <GraficosVolumeImp
-          startYear={selectedStartYear}
-          endYear={selectedEndYear}
-          startMonth={parseInt(selectedStartMonth)}
-          endMonth={parseInt(selectedEndMonth)}
-          importData={importData}
-          isIndividual={isIndividual}
-          selectedCountry={selectedCountry}  // Passando selectedCountry
-        />
-        <GraficosRegiaoImp
-          startYear={selectedStartYear}
-          endYear={selectedEndYear}
-          startMonth={parseInt(selectedStartMonth)}
-          endMonth={parseInt(selectedEndMonth)}
-          importData={importData}
-          isIndividual={isIndividual}
-          selectedCountry={selectedCountry}  // Passando selectedCountry
-        />
-        <GraficosDecisaoImp
-          startYear={selectedStartYear}
-          endYear={selectedEndYear}
-          startMonth={parseInt(selectedStartMonth)}
-          endMonth={parseInt(selectedEndMonth)}
-          importData={importData}
-          isIndividual={isIndividual}
-          selectedCountry={selectedCountry}  
-        />
+      <div className="chart-container"> {/* Organizar gráficos lado a lado */}
+        <div className="grafico-row">
+          <GraficosPrecoMedioImp
+            startYear={selectedStartYear}
+            endYear={selectedEndYear}
+            startMonth={parseInt(selectedStartMonth)}
+            endMonth={parseInt(selectedEndMonth)}
+            importData={importData}
+            isIndividual={isIndividual}
+            selectedCountry={selectedCountry}
+          />
+          <GraficosVolumeImp
+            startYear={selectedStartYear}
+            endYear={selectedEndYear}
+            startMonth={parseInt(selectedStartMonth)}
+            endMonth={parseInt(selectedEndMonth)}
+            importData={importData}
+            isIndividual={isIndividual}
+            selectedCountry={selectedCountry}
+          />
+        </div>
+        <div className="grafico-row">
+          <GraficosRegiaoImp
+            startYear={selectedStartYear}
+            endYear={selectedEndYear}
+            startMonth={parseInt(selectedStartMonth)}
+            endMonth={parseInt(selectedEndMonth)}
+            importData={importData}
+            isIndividual={isIndividual}
+            selectedCountry={selectedCountry}
+          />
+          <GraficosDecisaoImp
+            startYear={selectedStartYear}
+            endYear={selectedEndYear}
+            startMonth={parseInt(selectedStartMonth)}
+            endMonth={parseInt(selectedEndMonth)}
+            importData={importData}
+            isIndividual={isIndividual}
+            selectedCountry={selectedCountry}
+          />
+        </div>
       </div>
     </div>
   );

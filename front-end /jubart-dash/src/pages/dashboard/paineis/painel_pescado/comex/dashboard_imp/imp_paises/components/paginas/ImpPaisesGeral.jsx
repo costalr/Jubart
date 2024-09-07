@@ -1,5 +1,5 @@
 import React from 'react';
-import CardsPaisesImp from '../../components/cards/CardsPaisesImp';
+import CardsImp from '../../../shared/CardsImp';
 import GraficosPaisesImp from '../../components/graficos/GraficosPaisesImp';
 import TabelasPaisesImp from '../../components/tabelas/TabelasPaisesImp';
 
@@ -7,7 +7,8 @@ function ImpPaisesGeral({ importData, referenceMonth, referenceYear }) {
 
   return (
     <div className="dashboard dashboard-importacao-paises">
-      <CardsPaisesImp 
+      {/* Substituído CardsPaisesImp por CardsImp */}
+      <CardsImp 
         importData={importData} 
         referenceMonth={referenceMonth} 
         referenceYear={referenceYear} 

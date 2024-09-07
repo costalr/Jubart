@@ -7,13 +7,14 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 const CrescimentoPrecoMedio = ({ importData, startYear, endYear, startMonth, endMonth, selectedCountry, isIndividual }) => {
   const [chartData, setChartData] = useState(null);
   const chartRef = useRef(null);
+  const [isExpanded, setIsExpanded] = useState(false); // Estado para controlar a expansão
 
   useEffect(() => {
     const processData = () => {
       let statsByUF = {};
 
       importData.forEach(({ estado, total_usd, total_kg, ano, mes, pais }) => {
-        if (isIndividual && pais !== selectedCountry) return; // Filtra pelos dados do país selecionado se for visão individual
+        if (isIndividual && pais !== selectedCountry) return;
 
         const year = parseInt(ano);
         const month = parseInt(mes);
@@ -51,7 +52,7 @@ const CrescimentoPrecoMedio = ({ importData, startYear, endYear, startMonth, end
                 if (previousPrice > 0) {
                   const percentChange = ((currentPrice - previousPrice) / previousPrice) * 100;
 
-                  if (!isNaN(percentChange) && percentChange > 0) { // Considera apenas crescimentos
+                  if (!isNaN(percentChange) && percentChange > 0) {
                     if (!priceChanges[uf]) {
                       priceChanges[uf] = [];
                     }
@@ -88,42 +89,6 @@ const CrescimentoPrecoMedio = ({ importData, startYear, endYear, startMonth, end
     });
   }, [importData, startYear, endYear, startMonth, endMonth, selectedCountry, isIndividual]);
 
-  const options = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'top',
-        align: 'end'
-      },
-      tooltip: {
-        callbacks: {
-          label: function (context) {
-            return `${context.dataset.label}: ${context.raw.toFixed(2)}%`;
-          }
-        }
-      }
-    },
-    scales: {
-      x: {
-        title: {
-          display: true,
-          text: 'UFs'
-        }
-      },
-      y: {
-        title: {
-          display: true,
-          text: 'Variação %PM'
-        },
-        ticks: {
-          callback: function (value) {
-            return `${value.toFixed(2)}%`;
-          }
-        }
-      }
-    }
-  };
-
   const downloadChart = () => {
     if (chartRef.current) {
       const canvas = chartRef.current.canvas;
@@ -133,7 +98,6 @@ const CrescimentoPrecoMedio = ({ importData, startYear, endYear, startMonth, end
       clonedCanvas.width = canvas.width;
       clonedCanvas.height = canvas.height;
 
-      // Define fundo branco
       clonedCtx.fillStyle = 'white';
       clonedCtx.fillRect(0, 0, clonedCanvas.width, clonedCanvas.height);
       clonedCtx.drawImage(canvas, 0, 0);
@@ -147,12 +111,51 @@ const CrescimentoPrecoMedio = ({ importData, startYear, endYear, startMonth, end
   };
 
   return (
-    <div>
+    <div className={`grafico ${isExpanded ? 'expanded' : ''}`}>
       <h2>{isIndividual ? `Maiores Crescimentos do Preço Médio por UF - ${selectedCountry}` : 'Maiores Crescimentos do Preço Médio por UF - Geral'}</h2>
       {chartData ? (
         <>
-          <Bar ref={chartRef} data={chartData} options={options} />
-          <button onClick={downloadChart} style={{ marginTop: '10px' }}>Baixar Gráfico</button>
+          <Bar ref={chartRef} data={chartData} options={{
+            responsive: true,
+            plugins: {
+              legend: {
+                position: 'top',
+                align: 'end'
+              },
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    return `${context.dataset.label}: ${context.raw.toFixed(2)}%`;
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: 'UFs'
+                }
+              },
+              y: {
+                title: {
+                  display: true,
+                  text: 'Variação %PM'
+                },
+                ticks: {
+                  callback: function (value) {
+                    return `${value.toFixed(2)}%`;
+                  }
+                }
+              }
+            }
+          }} />
+          <div className="grafico-buttons">
+            <button onClick={downloadChart}>Baixar Gráfico</button>
+            <button onClick={() => setIsExpanded(!isExpanded)}>
+              {isExpanded ? 'Fechar' : 'Expandir'}
+            </button>
+          </div>
         </>
       ) : (
         <div>Carregando...</div>

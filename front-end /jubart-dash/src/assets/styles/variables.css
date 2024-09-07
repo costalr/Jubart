@@ -1,24 +1,33 @@
-/* variables.css */
-
+/* Tema Escuro */
 :root {
-    --color-primary: #F0B900;
-    --color-primary-light: #FFD54F;
-    --color-primary-dark: #B28900;
+  --color-primary: #F0B900; /* Amarelo */
+  --color-secondary: #CE5A81; /* Rosa */
   
-    --color-secondary: #34A853;
-    --color-secondary-light: #66BB6A;
-    --color-secondary-dark: #0B8043;
+  --background-color: #121212; /* Fundo escuro */
+  --color-text-light: #FFFFFF; /* Texto claro */
+  --color-border: #3A3A3A; /* Borda sutil no tema escuro */
   
-    --color-tertiary: #FFA500;
-    --color-tertiary-light: #FFCC80;
-    --color-tertiary-dark: #CC7A00;
+  --color-tertiary: #FFA500; /* Laranja */
+  --color-lightest: #F8F9FA; /* Tons mais claros usados em elementos */
+  --color-darkest: #020202; /* Usado para botões ou detalhes */
   
-    --background-color: #121212;
-    --toggle-button:  #020202;
-    --color-text-light: #FFFFFF;
-    --color-border: #DEE2E6;
+  --toggle-button: #020202; /* Cor do botão de alternância */
+  --search-input-background: #1F1F1F; /* Fundo do input com leve contraste */
+}
+
+/* Tema Claro */
+[data-theme="light"] {
+  --color-primary: #F0B900; /* Amarelo */
+  --color-secondary: #CE5A81; /* Rosa */
   
-    --color-lightest: #F8F9FA;
-    --color-darkest: #121212;
-  }
+  --background-color: #FFFFFF; /* Fundo claro */
+  --color-text-light: #000000; /* Texto escuro */
+  --color-border: #DEE2E6; /* Borda mais escura no tema claro */
   
+  --color-tertiary: #FF8800; /* Laranja mais escuro */
+  --color-lightest: #F1F1F1; /* Tons mais claros para realce */
+  --color-darkest: #121212; /* Usado para textos ou botões */
+  
+  --toggle-button: #CCCCCC; /* Cor do botão de alternância */
+  --search-input-background: #F2F2F2; /* Fundo do input com leve contraste */
+}

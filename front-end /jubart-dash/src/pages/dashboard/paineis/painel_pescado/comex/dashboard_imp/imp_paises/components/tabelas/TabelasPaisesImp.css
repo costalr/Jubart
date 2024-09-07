@@ -1,49 +1,114 @@
-/* TabelasImp.css */
-
-/* Estilo geral para centralizar e estilizar a tabela */
 .table-container {
+    background-color: var(--background-color);
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    color: var(--color-text-light);
+    overflow-x: auto;
+  }
+  
+  table {
     width: 100%;
-    overflow-x: auto; /* Permite rolagem horizontal se necessário */
-    display: flex;
-    flex-direction: column;
-    justify-content: center; /* Centraliza o conteúdo na horizontal */
-    margin: 20px 0; /* Espaçamento superior e inferior */
-}
+    border-collapse: collapse;
+    margin-top: 20px;
+    color: var(--color-text-light);
+  }
+  
+  th, td {
+    padding: 12px 20px;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+  }
+  
+  th {
+    cursor: pointer;
+    position: relative;
+    font-weight: bold;
+    font-size: 16px;
+    color: var(--color-primary);
+  }
 
-table {
-    border-collapse: collapse; /* Remove espaços entre as bordas das células */
-    margin: auto; /* Centraliza a tabela horizontalmente */
-    background-color: #f8f9fa; /* Cor de fundo da tabela */
-    color: #333; /* Cor do texto */
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* Sombra ao redor da tabela */
-    width: 90%; /* Largura da tabela */
-    max-width: 1200px; /* Máximo de largura da tabela */
-}
+  [data-theme="light"] th {
+    background-color: var(--color-secondary);
+    color: white;
 
-th, td {
-    border: 1px solid #dee2e6; /* Cor da borda */
-    padding: 8px 12px; /* Espaçamento interno */
-    text-align: center; /* Alinhamento do texto */
-}
+  }
 
-th {
-    background-color: #007bff; /* Cor de fundo do cabeçalho */
-    color: #ffffff; /* Cor do texto do cabeçalho */
-    font-weight: bold; /* Peso da fonte */
-}
+  [data-theme="dark"] th {
+    background-color: var(--color-border);
+  }
+  
+  [data-theme="dark"] th:hover {
+    background-color: var(--color-primary);
+    color: var(--color-text-light);
+    transition: background-color 0.3s, color 0.3s;
+  }
 
-/* Estilo para o cabeçalho fixo ao rolar a página, se necessário */
-thead th {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
+  [data-theme="light"] th:hover {
+    background-color: #FC9774;
+    color: var(--color-text-light);
+    transition: background-color 0.3s, color 0.3s;
+  }
+  
+  
 
-/* Adicionando divisões entre linhas */
-tbody tr:nth-child(odd) {
-    background-color: #f2f2f2; /* Cor de fundo para linhas ímpares */
-}
-
-tbody tr:hover {
-    background-color: #ddd; /* Cor de fundo ao passar o mouse */
-}
+  
+  tr:hover {
+    transition: background-color 0.3s;
+  }
+  
+  thead th::after {
+    content: '▼';
+    font-size: 12px;
+    color: var(--color-primary);
+    display: inline-block;
+    margin-left: 8px;
+    opacity: 0;
+  }
+  
+  thead th.sorting-asc::after {
+    content: '▲';
+    opacity: 1;
+  }
+  
+  thead th.sorting-desc::after {
+    opacity: 1;
+  }
+  
+  /* Formatação condicional para variação percentual */
+  td {
+    border-bottom: 1px solid var(--color-border);
+    font-size: 14px;
+  }
+  
+  td.positive {
+    color: #28a745; /* Verde */
+    font-weight: bold;
+  }
+  
+  td.negative {
+    color: #dc3545; /* Vermelho */
+    font-weight: bold;
+  }
+  
+  td.neutral {
+    color: #ffc107; /* Amarelo */
+    font-weight: bold;
+  }
+  
+  /* Gradiente para as variações de preço */
+  td.var-kg, td.var-usd, td.var-price {
+    background: linear-gradient(90deg, #ffefba 0%, #ffffff 100%);
+    padding: 10px;
+    border-radius: 8px;
+  }
+  
+  /* Ajustes para valores */
+  td.currency {
+    color: var(--color-primary);
+  }
+  
+  td.tonnes {
+    color: var(--color-secondary);
+  }
+  

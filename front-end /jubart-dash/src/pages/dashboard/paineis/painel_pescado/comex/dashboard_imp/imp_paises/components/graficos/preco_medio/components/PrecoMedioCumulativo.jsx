@@ -7,21 +7,17 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 const PrecoMedioCumulativo = ({ importData, startYear, endYear, isIndividual = false }) => {
   const [data, setData] = useState(null);
   const chartRef = useRef(null);
+  const [isExpanded, setIsExpanded] = useState(false); // Estado para controlar a expansão
 
   useEffect(() => {
     const loadData = () => {
-      // Definir os anos de início e fim para a visualização individual (2010 a 2024)
       const filterStartYear = isIndividual ? 2010 : startYear;
       const filterEndYear = isIndividual ? 2024 : endYear;
 
-
       const filteredData = importData.filter(item =>
         parseInt(item.ano) >= filterStartYear &&
-        parseInt(item.ano) <= filterEndYear &&
-        item.total_kg !== 'NaN' &&
-        item.total_usd !== 'NaN'
+        parseInt(item.ano) <= filterEndYear
       );
-
 
       const yearlyData = filteredData.reduce((acc, curr) => {
         const year = curr.ano;
@@ -33,17 +29,13 @@ const PrecoMedioCumulativo = ({ importData, startYear, endYear, isIndividual = f
         return acc;
       }, {});
 
-
-      // Garantir que os anos de 2010 a 2024 sejam exibidos mesmo que não haja dados
       const years = isIndividual
         ? Array.from({ length: 15 }, (_, i) => (2010 + i).toString())
         : Object.keys(yearlyData).sort();
 
       const volumes = years.map(year => yearlyData[year]?.totalVolume || 0);
       const values = years.map(year => yearlyData[year]?.totalValue || 0);
-      const prices = years.map(year => (yearlyData[year]?.totalVolume ? yearlyData[year].totalValue / yearlyData[year].totalVolume : 0));
-
-
+      const prices = years.map(year => yearlyData[year]?.totalVolume ? yearlyData[year].totalValue / yearlyData[year].totalVolume : 0);
 
       setData({
         labels: years,
@@ -81,76 +73,6 @@ const PrecoMedioCumulativo = ({ importData, startYear, endYear, isIndividual = f
     loadData();
   }, [startYear, endYear, importData, isIndividual]);
 
-  const options = {
-    responsive: true,
-    interaction: {
-      mode: 'index',
-      intersect: false,
-    },
-    scales: {
-      x: {
-        title: {
-          display: true,
-          text: 'Ano'
-        },
-      },
-      y: {
-        type: 'linear',
-        display: true,
-        position: 'left',
-        title: {
-          display: true,
-          text: 'Valor (US$)'
-        },
-      },
-      y1: {
-        type: 'linear',
-        display: true,
-        position: 'right',
-        title: {
-          display: true,
-          text: 'Kg'
-        },
-        grid: {
-          drawOnChartArea: false,
-        },
-      },
-      y2: {
-        type: 'linear',
-        display: true,
-        position: 'right',
-        title: {
-          display: true,
-          text: 'Preço Médio (US$/kg)'
-        },
-        grid: {
-          drawOnChartArea: false,
-        },
-      },
-    },
-    plugins: {
-      legend: {
-        position: 'top',
-      },
-      tooltip: {
-        callbacks: {
-          label: function (tooltipItem) {
-            let label = tooltipItem.dataset.label;
-            let value = tooltipItem.raw;
-            if (label === 'US$') {
-              value = `${(value / 1e6).toFixed(2)}M US$`;
-            } else if (label === 'Kg') {
-              value = `${(value / 1e3).toFixed(2)}k kg`;
-            } else {
-              value = `${value.toFixed(2)} US$/kg`;
-            }
-            return `${label}: ${value}`;
-          }
-        }
-      }
-    }
-  };
-
   const downloadChart = () => {
     if (chartRef.current) {
       const canvas = chartRef.current.canvas;
@@ -158,7 +80,7 @@ const PrecoMedioCumulativo = ({ importData, startYear, endYear, isIndividual = f
       const clonedCtx = clonedCanvas.getContext('2d');
 
       clonedCanvas.width = canvas.width;
-      clonedCanvas.height = canvas.height + 50; // Adds space for the title
+      clonedCanvas.height = canvas.height + 50;
 
       clonedCtx.fillStyle = 'white';
       clonedCtx.fillRect(0, 0, clonedCanvas.width, clonedCanvas.height);
@@ -170,20 +92,57 @@ const PrecoMedioCumulativo = ({ importData, startYear, endYear, isIndividual = f
 
       clonedCtx.drawImage(canvas, 0, 50);
 
-      const chartImage = clonedCanvas.toDataURL('image/png');
-
+      const url = clonedCanvas.toDataURL('image/png');
       const link = document.createElement('a');
-      link.href = chartImage;
       link.download = 'PrecoMedioCumulativoImportacao.png';
+      link.href = url;
       link.click();
     }
   };
 
   return (
-    <div>
+    <div className={`grafico ${isExpanded ? 'expanded' : ''}`}>
       <h2>Preço Médio Cumulativo de Importação</h2>
-      {data ? <Bar ref={chartRef} data={data} options={options} /> : <div>Carregando...</div>}
-      <button onClick={downloadChart}>Download do Gráfico</button>
+      {data ? (
+        <>
+          <Bar ref={chartRef} data={data} options={{
+            responsive: true,
+            scales: {
+              x: {
+                title: { display: true, text: 'Ano' },
+              },
+              y: {
+                type: 'linear',
+                display: true,
+                position: 'left',
+                title: { display: true, text: 'Valor (US$)' },
+              },
+              y1: {
+                type: 'linear',
+                display: true,
+                position: 'right',
+                title: { display: true, text: 'Kg' },
+                grid: { drawOnChartArea: false },
+              },
+              y2: {
+                type: 'linear',
+                display: true,
+                position: 'right',
+                title: { display: true, text: 'Preço Médio (US$/kg)' },
+                grid: { drawOnChartArea: false },
+              },
+            },
+            plugins: {
+              legend: { position: 'top' },
+              tooltip: { callbacks: { label: context => `${context.dataset.label}: ${context.raw}` } },
+            },
+          }} />
+          <div className="grafico-buttons">
+            <button onClick={downloadChart}>Download do Gráfico</button>
+            <button onClick={() => setIsExpanded(!isExpanded)}>{isExpanded ? 'Fechar' : 'Expandir'}</button>
+          </div>
+        </>
+      ) : <p>Carregando...</p>}
     </div>
   );
 };

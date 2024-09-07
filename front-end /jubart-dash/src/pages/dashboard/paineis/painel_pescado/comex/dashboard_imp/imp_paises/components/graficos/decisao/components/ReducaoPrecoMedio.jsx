@@ -7,6 +7,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 const ReducaoPrecoMedio = ({ importData, startYear, endYear, startMonth, endMonth, selectedCountry, isIndividual }) => {
   const [chartData, setChartData] = useState(null);
   const chartRef = useRef(null);
+  const [isExpanded, setIsExpanded] = useState(false); // Estado para controlar a expansão
 
   useEffect(() => {
     const processData = () => {
@@ -150,12 +151,17 @@ const ReducaoPrecoMedio = ({ importData, startYear, endYear, startMonth, endMont
   };
 
   return (
-    <div>
+    <div className={`grafico ${isExpanded ? 'expanded' : ''}`}>
       <h2>{isIndividual ? `Maiores Reduções do Preço Médio por UF - ${selectedCountry}` : 'Maiores Reduções do Preço Médio por UF - Geral'}</h2>
       {chartData ? (
         <>
           <Bar ref={chartRef} data={chartData} options={options} />
-          <button onClick={downloadChart} style={{ marginTop: '10px' }}>Baixar Gráfico</button>
+          <div className="grafico-buttons">
+            <button onClick={downloadChart} style={{ marginTop: '10px' }}>Baixar Gráfico</button>
+            <button onClick={() => setIsExpanded(!isExpanded)} style={{ marginTop: '10px' }}>
+              {isExpanded ? 'Fechar' : 'Expandir'}
+            </button>
+          </div>
         </>
       ) : (
         <div>Carregando...</div>

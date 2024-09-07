@@ -1,0 +1,98 @@
+/* Estilos gerais */
+.grafico {
+  position: relative;
+  transition: all 0.3s ease;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  max-width: 100%;
+}
+
+.graficos-container {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px; /* Espaçamento entre os gráficos */
+  flex-wrap: wrap; /* Para garantir que em telas menores os gráficos quebrem linha */
+}
+
+.grafico-container {
+  flex: 1;
+  min-width: 45%;
+  max-width: 45%;
+  border-radius: 5px;
+  padding: 15px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.5s ease;
+}
+
+.grafico.expanded {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1000;
+  padding: 40px;
+  background-color: rgba(255, 255, 255, 0.95);
+  overflow: auto;
+}
+
+.grafico.expanded canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Estilo específico para gráficos de pizza */
+.grafico-pizza {
+  max-width: 400px;
+  height: auto;
+  margin: 0 auto;
+  position: relative;
+}
+
+.grafico-pizza.expanded {
+  max-width: none;
+  width: 35vw;
+  height: 60vh;
+
+}
+
+.grafico-pizza canvas {
+  width: 100% !important;
+  height: auto !important;
+}
+
+.grafico-buttons {
+  display: flex;
+  justify-content: space-between;
+}
+
+.grafico-buttons button {
+  padding: 10px 15px;
+  background-color: #007BFF;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.grafico-buttons button:hover {
+  background-color: #0056b3;
+}
+
+.grafico h2 {
+  font-size: 16px; /* Tamanho da fonte */
+  font-weight: bold; /* Texto em negrito */
+  text-align: center; /* Centralizado */
+  margin-bottom: 20px; /* Espaçamento abaixo do título */
+  padding: 10px 20px; /* Espaçamento interno */
+  border-radius: 8px; /* Bordas arredondadas */
+  box-shadow: 0 4px 6px hwb(0 0% 100% / 0.1); /* Sombra sutil */
+  transition: background-color 0.3s ease, color 0.3s ease; /* Transições suaves */
+}
+
+.grafico.expanded h2 {
+  font-size: 24px; /* Aumentar o tamanho quando expandido */
+
+}

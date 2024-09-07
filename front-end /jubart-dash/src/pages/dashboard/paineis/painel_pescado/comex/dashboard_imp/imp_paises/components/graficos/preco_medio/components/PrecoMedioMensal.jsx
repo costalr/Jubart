@@ -7,6 +7,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineEleme
 const PrecoMedioMensal = ({ startYear, endYear, startMonth, endMonth, importData, isIndividual = false }) => {
   const [data, setData] = useState(null);
   const chartRef = useRef(null);
+  const [isExpanded, setIsExpanded] = useState(false); // Controle de expansão
 
   useEffect(() => {
     if (!importData) return;
@@ -117,7 +118,7 @@ const PrecoMedioMensal = ({ startYear, endYear, startMonth, endMonth, importData
   };
 
   return (
-    <div>
+    <div className={`grafico ${isExpanded ? 'expanded' : ''}`}>
       <h2>Histórico Mês a Mês</h2>
       {data ? (
         <>
@@ -172,7 +173,10 @@ const PrecoMedioMensal = ({ startYear, endYear, startMonth, endMonth, importData
               },
             }}
           />
-          <button onClick={downloadChart} style={{ marginTop: '10px' }}>Download do Gráfico</button>
+          <div className="grafico-buttons">
+            <button onClick={downloadChart}>Download do Gráfico</button>
+            <button onClick={() => setIsExpanded(!isExpanded)}>{isExpanded ? 'Fechar' : 'Expandir'}</button>
+          </div>
         </>
       ) : (
         <div>Carregando dados...</div>

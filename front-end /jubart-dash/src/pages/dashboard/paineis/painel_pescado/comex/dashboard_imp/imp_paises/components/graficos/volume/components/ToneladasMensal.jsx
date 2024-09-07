@@ -7,6 +7,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 const ToneladasMensalImp = ({ importData, isIndividual = false, startYear, endYear, startMonth, endMonth }) => {
   const [data, setData] = useState(null);
   const chartRef = useRef(null);
+  const [isExpanded, setIsExpanded] = useState(false); // Estado para controlar a expansão
 
   useEffect(() => {
     const processData = () => {
@@ -31,15 +32,6 @@ const ToneladasMensalImp = ({ importData, isIndividual = false, startYear, endYe
         const year = item.ano.toString();
         const monthIndex = parseInt(item.mes) - 1;
         structuredData[year][monthIndex] += parseFloat(item.total_kg);
-      });
-
-      // Propaga o valor acumulado do mês anterior para os meses seguintes no ano corrente
-      Object.keys(structuredData).forEach(year => {
-        for (let i = 1; i < 12; i++) {
-          if (structuredData[year][i] === 0 && structuredData[year][i - 1] > 0) {
-            structuredData[year][i] = structuredData[year][i - 1];
-          }
-        }
       });
 
       const labels = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
@@ -92,7 +84,7 @@ const ToneladasMensalImp = ({ importData, isIndividual = false, startYear, endYe
   };
 
   return (
-    <div>
+    <div className={`grafico ${isExpanded ? 'expanded' : ''}`}> {/* Classe condicional para controlar a expansão */}
       <h2>Histórico Mensal de Toneladas {isIndividual ? `${new Date().getFullYear() - 5} a ${new Date().getFullYear()}` : `${startYear} a ${endYear}`}</h2>
       {data ? (
         <>
@@ -124,7 +116,12 @@ const ToneladasMensalImp = ({ importData, isIndividual = false, startYear, endYe
               }
             }
           }} />
-          <button onClick={downloadChart} style={{ marginTop: '10px' }}>Download do Gráfico</button>
+          <div className="grafico-buttons">
+            <button onClick={downloadChart} style={{ marginTop: '10px' }}>Download do Gráfico</button>
+            <button onClick={() => setIsExpanded(!isExpanded)} style={{ marginTop: '10px' }}>
+              {isExpanded ? 'Fechar' : 'Expandir'}
+            </button>
+          </div>
         </>
       ) : <p>Carregando dados...</p>}
     </div>

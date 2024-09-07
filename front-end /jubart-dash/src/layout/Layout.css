@@ -1,3 +1,4 @@
+/* Configurações gerais */
 .app-layout {
   display: flex;
   flex-direction: column;
@@ -9,18 +10,20 @@
   flex-grow: 1;
 }
 
+/* Sidebar expandida e minimizada */
 .sidebar {
   transition: width 0.3s ease;
 }
 
 .sidebar-expanded {
-  width: 250px;
+  width: 250px; /* Largura quando expandida */
 }
 
 .sidebar-collapsed {
-  width: 80px;
+  width: 80px; /* Largura quando minimizada */
 }
 
+/* Conteúdo principal */
 .content {
   display: flex;
   flex-direction: column;
@@ -28,14 +31,22 @@
   transition: margin-left 0.3s ease;
 }
 
+/* Quando a sidebar está expandida */
+.content-expanded {
+  margin-left: 250px; /* Espaço para a sidebar expandida */
+}
 
+/* Quando a sidebar está minimizada */
+.content-hidden {
+  margin-left: 80px; /* Espaço menor para a sidebar minimizada */
+}
 
 .main-content {
   flex-grow: 1;
   padding: 20px;
-  overflow-y: auto;
 }
 
+/* Botões de seleção */
 .selector-buttons {
   margin-bottom: 20px;
   display: flex;

@@ -1,32 +1,98 @@
 .cards-container {
     display: flex;
     justify-content: space-around;
-    flex-wrap: wrap;
-}
+  }
   
-.card {
-    flex: 1;
-    min-width: 300px;
-    max-width: 400px;
-    background-color: var(--color-darkest) !important; 
-    border: 1px solid #ccc;
-    border-radius: 8px;
+  .card-imp {
+    background-color: #ffffff; /* Fundo branco */
     padding: 20px;
-    margin: 10px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 12px; /* Cantos arredondados */
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* Sombra leve */
     text-align: center;
-}
+    height: 80%;
+  }
+
+  .card-imp h3 {
+    font-size: 15px;
+  }
   
-.card h2 {
-    margin-bottom: 10px;
-    font-size: 1.5em;
-    color: var(--color-primary);
-}
-  
-.card p {
-    margin: 5px 0;
-    font-size: 20px;
+  .main-value {
+    font-size: 25px; /* Tamanho maior */
     font-weight: bold;
-    padding: 5px;
-    color: #d9d9d9;
-}
+    margin: 10px 0;
+    color: #333333; /* Texto escuro */
+  }
+  
+  .change {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px; 
+    color: #333333; /* Cor neutra */
+  }
+  
+  .positive {
+    color: green;
+  }
+  
+  .negative {
+    color: red;
+  }
+  
+  .arrow {
+    margin-right: 5px;
+  }
+  
+  .view-toggle {
+    display: flex;
+    justify-content: center;
+    margin-top: 15px;
+  }
+  
+  .view-toggle button {
+    padding: 4px 10px;
+    margin: 0 5px;
+    border: none;
+    border-radius: 20px; /* Botões arredondados */
+    background-color: #f0f0f0;
+    color: #555555; /* Cor do texto */
+    cursor: pointer;
+    font-weight: bold;
+  }
+  
+  .view-toggle button.active {
+    background-color: #007bff;
+    color: white;
+  }
+  
+  .cards-imp-chart-container {
+    height: 60px;
+    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .chart-container canvas {
+    width: 100%;
+    height: 100%;
+  }
+  
+  .card-icon {
+    font-size: 40px;
+    color: #007bff; /* Cor do ícone */
+
+  }
+  
+  .title {
+    font-size: 12px;
+    color: #666666;
+    margin-top: 40px; /* Espaçamento com o ícone */
+  }
+  
+  .subtitle {
+    font-size: 14px;
+    color: #999999;
+  }
+  
+  

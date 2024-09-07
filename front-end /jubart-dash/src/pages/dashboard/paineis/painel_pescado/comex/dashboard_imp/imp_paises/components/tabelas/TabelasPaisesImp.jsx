@@ -1,15 +1,26 @@
-import React from 'react';
-import './TabelasPaisesImp.css'
+import React, { useState, useEffect } from 'react';
+import './TabelasPaisesImp.css';
 
 const TabelasPaisesImp = ({ importData, selectedCountry }) => {
     const currentYear = new Date().getFullYear();
+
+    // Estado para armazenar a coluna e a direção da ordenação
+    const [sortColumn, setSortColumn] = useState(`${currentYear}-kg`);
+    const [sortDirection, setSortDirection] = useState('desc'); // 'asc' para ascendente e 'desc' para descendente
+    const [theme, setTheme] = useState('dark');
+
+    useEffect(() => {
+        document.documentElement.setAttribute('data-theme', theme);
+    }, [theme]);
+
+
 
     const calculateTableData = () => {
         const dataByRegion = {};
 
         importData.forEach(item => {
             const year = parseInt(item.ano);
-            const region = selectedCountry ? item.estado : item.pais;  // Agrupar por UF se um país for selecionado, caso contrário, por país
+            const region = selectedCountry ? item.estado : item.pais;
 
             if ((year === currentYear || year === currentYear - 1) && (!selectedCountry || item.pais === selectedCountry)) {
                 if (!dataByRegion[region]) {
@@ -59,28 +70,39 @@ const TabelasPaisesImp = ({ importData, selectedCountry }) => {
             };
         });
 
-        return tableData.sort((a, b) => {
-            if (b[`${currentYear}-kg`] !== a[`${currentYear}-kg`]) {
-                return b[`${currentYear}-kg`] - a[`${currentYear}-kg`];
+        const sortedTableData = [...tableData].sort((a, b) => {
+            const compareA = a[sortColumn];
+            const compareB = b[sortColumn];
+
+            if (sortDirection === 'asc') {
+                return compareA > compareB ? 1 : -1;
+            } else {
+                return compareA < compareB ? 1 : -1;
             }
-            return b[`${currentYear - 1}-kg`] - a[`${currentYear - 1}-kg`];
         });
+
+        return sortedTableData;
     };
 
-    const formatCurrency = (value) => {
-        return value.toLocaleString('pt-BR', { style: 'currency', currency: 'USD' });
+    const formatCurrency = (value) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'USD' });
+    const formatTonnes = (value) => value.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + " kg";
+    const formatPercentage = (value) => `${parseFloat(value).toFixed(2)}%`;
+    const formatPrice = (value) => `$${parseFloat(value).toFixed(2)}`;
+
+    const handleSort = (column) => {
+        if (sortColumn === column) {
+            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortColumn(column);
+            setSortDirection('desc');
+        }
     };
 
-    const formatTonnes = (value) => {
-        return value.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + " kg";
-    };
-
-    const formatPercentage = (value) => {
-        return `${parseFloat(value).toFixed(2)}%`;
-    };
-
-    const formatPrice = (value) => {
-        return `$${parseFloat(value).toFixed(2)}`;
+    const renderSortIcon = (column) => {
+        if (sortColumn === column) {
+            return sortDirection === 'asc' ? '▲' : '▼';
+        }
+        return null;
     };
 
     const tableData = calculateTableData();
@@ -93,16 +115,18 @@ const TabelasPaisesImp = ({ importData, selectedCountry }) => {
             <table>
                 <thead>
                     <tr>
-                        <th>{selectedCountry ? 'UF' : 'País'}</th>
-                        <th>{currentYear}-kg</th>
-                        <th>{currentYear - 1}-kg</th>
-                        <th>Variação% kg</th>
-                        <th>{currentYear}-US$</th>
-                        <th>{currentYear - 1}-US$</th>
-                        <th>Variação% US$</th>
-                        <th>Preço Médio {currentYear}</th>
-                        <th>Preço Médio {currentYear - 1}</th>
-                        <th>Var% Preço Médio</th>
+                        <th onClick={() => handleSort(selectedCountry ? 'UF' : 'País')}>
+                            {selectedCountry ? 'UF' : 'País'} {renderSortIcon(selectedCountry ? 'UF' : 'País')}
+                        </th>
+                        <th onClick={() => handleSort(`${currentYear}-kg`)}>{currentYear}-kg {renderSortIcon(`${currentYear}-kg`)}</th>
+                        <th onClick={() => handleSort(`${currentYear - 1}-kg`)}>{currentYear - 1}-kg {renderSortIcon(`${currentYear - 1}-kg`)}</th>
+                        <th onClick={() => handleSort('varKg%')}>Variação% kg {renderSortIcon('varKg%')}</th>
+                        <th onClick={() => handleSort(`${currentYear}-usd`)}>{currentYear}-US$ {renderSortIcon(`${currentYear}-usd`)}</th>
+                        <th onClick={() => handleSort(`${currentYear - 1}-usd`)}>{currentYear - 1}-US$ {renderSortIcon(`${currentYear - 1}-usd`)}</th>
+                        <th onClick={() => handleSort('varUsd%')}>Variação% US$ {renderSortIcon('varUsd%')}</th>
+                        <th onClick={() => handleSort(`${currentYear}-Preco`)}>Preço Médio {currentYear} {renderSortIcon(`${currentYear}-Preco`)}</th>
+                        <th onClick={() => handleSort(`${currentYear - 1}-Preco`)}>Preço Médio {currentYear - 1} {renderSortIcon(`${currentYear - 1}-Preco`)}</th>
+                        <th onClick={() => handleSort('varPrice%')}>Var% Preço Médio {renderSortIcon('varPrice%')}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -111,13 +135,19 @@ const TabelasPaisesImp = ({ importData, selectedCountry }) => {
                             <td>{row.region}</td>
                             <td>{formatTonnes(row[`${currentYear}-kg`])}</td>
                             <td>{formatTonnes(row[`${currentYear - 1}-kg`])}</td>
-                            <td>{formatPercentage(row['varKg%'])}</td>
+                            <td className={parseFloat(row['varKg%']) > 0 ? "positive" : "negative"}>
+                                {formatPercentage(row['varKg%'])}
+                            </td>
                             <td>{formatCurrency(row[`${currentYear}-usd`])}</td>
                             <td>{formatCurrency(row[`${currentYear - 1}-usd`])}</td>
-                            <td>{formatPercentage(row['varUsd%'])}</td>
+                            <td className={parseFloat(row['varUsd%']) > 0 ? "positive" : "negative"}>
+                                {formatPercentage(row['varUsd%'])}
+                            </td>
                             <td>{formatPrice(row[`${currentYear}-Preco`])}</td>
                             <td>{formatPrice(row[`${currentYear - 1}-Preco`])}</td>
-                            <td>{formatPercentage(row['varPrice%'])}</td>
+                            <td className={parseFloat(row['varPrice%']) > 0 ? "positive" : "negative"}>
+                                {formatPercentage(row['varPrice%'])}
+                            </td>
                         </tr>
                     ))}
                 </tbody>

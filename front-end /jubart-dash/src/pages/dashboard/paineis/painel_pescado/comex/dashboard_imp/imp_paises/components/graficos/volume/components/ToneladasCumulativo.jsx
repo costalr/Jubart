@@ -7,15 +7,15 @@ ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, Title, T
 const ToneladasCumulativasImp = ({ importData, isIndividual = false, startYear, endYear, startMonth, endMonth }) => {
   const [data, setData] = useState(null);
   const chartRef = useRef(null);
+  const [isExpanded, setIsExpanded] = useState(false); // Estado para controlar a expansão
 
   useEffect(() => {
     if (!importData) return;
 
     const processData = () => {
-      const currentYear = new Date().getFullYear(); // Definindo currentYear
+      const currentYear = new Date().getFullYear();
       const currentMonth = new Date().getMonth() + 1;
 
-      // Se for individual, fixe os últimos 6 anos
       const filterStartYear = isIndividual ? currentYear - 5 : startYear;
       const filterEndYear = isIndividual ? currentYear : endYear;
 
@@ -96,55 +96,51 @@ const ToneladasCumulativasImp = ({ importData, isIndividual = false, startYear, 
     }
   };
 
-  const options = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'top',
-        labels: {
-          boxWidth: 20
-        }
-      },
-      tooltip: {
-        callbacks: {
-          label: tooltipItem => `${tooltipItem.dataset.label}: ${tooltipItem.raw.toLocaleString()} toneladas`
-        }
-      }
-    },
-    scales: {
-      y: {
-        type: 'linear',
-        display: true,
-        title: {
-          display: true,
-          text: 'Toneladas'
-        },
-        ticks: {
-          callback: value => `${(value / 1000).toLocaleString()}k`
-        }
-      },
-      x: {
-        title: {
-          display: true,
-          text: 'Mês'
-        }
-      }
-    }
-  };
-
   return (
-    <div>
+    <div className={`grafico ${isExpanded ? 'expanded' : ''}`}> {/* Classe condicional para controlar a expansão */}
       <h2>Toneladas Cumulativas {isIndividual ? `${new Date().getFullYear() - 5} a ${new Date().getFullYear()}` : `${startYear} a ${endYear}`}</h2>
       {data ? (
         <>
-          <Line ref={chartRef} data={data} options={options} />
-          <div style={{ display: 'flex', justifyContent: 'space-evenly', marginTop: '10px' }}>
-            {isIndividual && (
-              <button onClick={downloadChart}>Download do Gráfico</button>
-            )}
+          <Line ref={chartRef} data={data} options={{
+            responsive: true,
+            scales: {
+              y: {
+                type: 'linear',
+                display: true,
+                title: {
+                  display: true,
+                  text: 'Toneladas'
+                },
+                ticks: {
+                  callback: value => `${(value / 1000).toLocaleString()}k`
+                }
+              },
+              x: {
+                title: {
+                  display: true,
+                  text: 'Mês'
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                position: 'top'
+              },
+              tooltip: {
+                callbacks: {
+                  label: (context) => `${context.dataset.label}: ${context.raw.toLocaleString()} toneladas`
+                }
+              }
+            }
+          }} />
+          <div className="grafico-buttons">
+            <button onClick={downloadChart} style={{ marginTop: '10px' }}>Download do Gráfico</button>
+            <button onClick={() => setIsExpanded(!isExpanded)} style={{ marginTop: '10px' }}>
+              {isExpanded ? 'Fechar' : 'Expandir'}
+            </button>
           </div>
         </>
-      ) : <div>Carregando...</div>}
+      ) : <p>Carregando dados...</p>}
     </div>
   );
 };

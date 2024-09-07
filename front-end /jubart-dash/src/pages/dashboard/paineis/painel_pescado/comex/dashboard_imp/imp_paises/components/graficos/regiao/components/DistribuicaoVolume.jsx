@@ -6,70 +6,56 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 
 const DistribuicaoVolume = ({ importData, isIndividual = false, selectedCountry }) => {
   const [data, setData] = useState(null);
-  const [totalVolume, setTotalVolume] = useState(0);  // Estado para armazenar o volume total
-  const [error, setError] = useState(null);
-  const chartRef = useRef(null); // Ref para acessar o gráfico
+  const [totalVolume, setTotalVolume] = useState(0);
+  const chartRef = useRef(null);
+  const [isExpanded, setIsExpanded] = useState(false); // Estado para controlar a expansão
 
   useEffect(() => {
     const currentYear = new Date().getFullYear();
-    try {
-      const volumes = {};
+    const volumes = {};
 
-;
-
-      if (isIndividual && !selectedCountry) {
-        console.error("Selected country is undefined or null while in individual mode.");
-        return;
-      }
-
-      importData.forEach(item => {
-        if (parseInt(item.ano) === currentYear) {
-          if (isIndividual && item.pais === selectedCountry) {
-            const uf = item.estado || "Outros";
-            const volume = parseFloat(item.total_kg || 0);
-            volumes[uf] = (volumes[uf] || 0) + volume;
-          } else if (!isIndividual) {
-            const country = item.pais || "Outros";
-            const volume = parseFloat(item.total_kg || 0);
-            volumes[country] = (volumes[country] || 0) + volume;
-          }
+    importData.forEach(item => {
+      if (parseInt(item.ano) === currentYear) {
+        if (isIndividual && item.pais === selectedCountry) {
+          const uf = item.estado || "Outros";
+          const volume = parseFloat(item.total_kg || 0);
+          volumes[uf] = (volumes[uf] || 0) + volume;
+        } else if (!isIndividual) {
+          const country = item.pais || "Outros";
+          const volume = parseFloat(item.total_kg || 0);
+          volumes[country] = (volumes[country] || 0) + volume;
         }
-      });
+      }
+    });
 
+    const total = Object.values(volumes).reduce((acc, curr) => acc + curr, 0);
+    setTotalVolume(total);
 
-      const total = Object.values(volumes).reduce((acc, curr) => acc + curr, 0);
-      setTotalVolume(total); // Armazena o total para uso no tooltip
+    const sortedKeys = Object.keys(volumes).sort((a, b) => volumes[b] - volumes[a]);
+    const topKeys = sortedKeys.slice(0, 5);
+    const otherVolume = sortedKeys.slice(5).reduce((acc, key) => acc + volumes[key], 0);
 
-      const sortedKeys = Object.keys(volumes).sort((a, b) => volumes[b] - volumes[a]);
-      const topKeys = sortedKeys.slice(0, 5);
-      const otherVolume = sortedKeys.slice(5).reduce((acc, key) => acc + volumes[key], 0);
+    const labels = [...topKeys, 'Outros'];
+    const volumeData = topKeys.map(key => volumes[key]).concat(otherVolume);
 
-      const labels = [...topKeys, 'Outros'];
-      const volumeData = topKeys.map(key => volumes[key]).concat(otherVolume);
-
-    
-      setData({
-        labels,
-        datasets: [{
-          label: isIndividual ? `Distribuição por UF em Kg - ${selectedCountry}` : 'Distribuição por países em Kg',
-          data: volumeData,
-          backgroundColor: [
-            'rgba(75, 192, 192, 0.6)', 'rgba(255, 99, 132, 0.6)',
-            'rgba(54, 162, 235, 0.6)', 'rgba(255, 206, 86, 0.6)',
-            'rgba(153, 102, 255, 0.6)', 'rgba(201, 203, 207, 0.6)'
-          ],
-          borderColor: [
-            'rgba(75, 192, 192, 1)', 'rgba(255, 99, 132, 1)',
-            'rgba(54, 162, 235, 1)', 'rgba(255, 206, 86, 1)',
-            'rgba(153, 102, 255, 1)', 'rgba(201, 203, 207, 1)'
-          ],
-          borderWidth: 1
-        }]
-      });
-    } catch (err) {
-      console.error('Erro ao processar os dados:', err);
-      setError(err);
-    }
+    setData({
+      labels,
+      datasets: [{
+        label: isIndividual ? `Distribuição por UF em Kg - ${selectedCountry}` : 'Distribuição por países em Kg',
+        data: volumeData,
+        backgroundColor: [
+          'rgba(75, 192, 192, 0.6)', 'rgba(255, 99, 132, 0.6)',
+          'rgba(54, 162, 235, 0.6)', 'rgba(255, 206, 86, 0.6)',
+          'rgba(153, 102, 255, 0.6)', 'rgba(201, 203, 207, 0.6)'
+        ],
+        borderColor: [
+          'rgba(75, 192, 192, 1)', 'rgba(255, 99, 132, 1)',
+          'rgba(54, 162, 235, 1)', 'rgba(255, 206, 86, 1)',
+          'rgba(153, 102, 255, 1)', 'rgba(201, 203, 207, 1)'
+        ],
+        borderWidth: 1
+      }]
+    });
   }, [importData, isIndividual, selectedCountry]);
 
   const downloadChart = () => {
@@ -90,6 +76,10 @@ const DistribuicaoVolume = ({ importData, isIndividual = false, selectedCountry 
     }
   };
 
+  const handleExpandToggle = () => {
+    setIsExpanded(!isExpanded);
+  };
+
   const options = {
     responsive: true,
     plugins: {
@@ -107,15 +97,16 @@ const DistribuicaoVolume = ({ importData, isIndividual = false, selectedCountry 
     }
   };
 
-  if (error) {
-    return <div>Erro ao carregar dados: {error.message}</div>;
-  }
-
   return (
-    <div style={{ width: '50%', margin: '0 auto' }}>
+    <div className={`grafico-pizza ${isExpanded ? 'expanded' : ''}`}>
       <h2>{isIndividual ? `Distribuição por UF em Kg - ${selectedCountry}` : 'Distribuição por países em Kg'}</h2>
       {data ? <Pie ref={chartRef} data={data} options={options} /> : <div>Carregando...</div>}
-      <button onClick={downloadChart} style={{ marginTop: '10px' }}>Clique aqui para baixar o gráfico!</button>
+      <div className="grafico-buttons">
+        <button onClick={downloadChart} style={{ marginTop: '10px' }}>Download do Gráfico</button>
+        <button onClick={handleExpandToggle} style={{ marginTop: '10px' }}>
+          {isExpanded ? 'Fechar' : 'Expandir'}
+        </button>
+      </div>
     </div>
   );
 };
